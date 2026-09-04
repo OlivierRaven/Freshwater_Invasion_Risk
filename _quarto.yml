@@ -1,0 +1,18 @@
+project:
+  type: default
+  render:
+    - index.qmd
+    - analysis.qmd
+
+format:
+  html:
+    toc: true
+  pdf:
+    documentclass: article
+    linestretch: 2
+  docx: default
+
+# Swap this one line to retarget a different journal's citation style
+csl: references/nature.csl
+
+bibliography: references/references.bib

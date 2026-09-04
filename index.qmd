@@ -1,0 +1,130 @@
+---
+title: "Global compounding risk from co-occurring freshwater invasive species: a predictive test of invasional meltdown"
+author:
+  - name: "FILL IN: Your Name"
+    affiliation: "FILL IN: Institution"
+    email: "FILL IN"
+date: today
+format:
+  pdf:
+    documentclass: article
+    linestretch: 2
+  docx:
+    default: true
+  html:
+    toc: true
+bibliography: references/references.bib
+csl: references/nature.csl
+---
+
+```{r}
+#| label: setup
+#| echo: false
+library(tidyverse)
+species_list <- read_csv("data/derived/species_shortlist.csv", show_col_types = FALSE)
+```
+
+## Abstract
+
+<!-- FILL IN: 150-250 words once results exist. Draft skeleton below. -->
+
+Invasional meltdown — the hypothesis that non-native species facilitate one
+another's establishment and impact — has been supported almost exclusively
+by single-site case studies over 25 years. Here we provide, to our
+knowledge, the first global, spatially-explicit, predictive test of the
+hypothesis in freshwater systems, combining species distribution models for
+`r nrow(species_list)` invasive freshwater taxa with river-network-aware
+environmental data. FILL IN: headline result once analysis is complete.
+
+## Introduction
+
+Invasional meltdown — the hypothesis that non-native species facilitate one
+another's establishment and impact [@Simberloff1999] — is a 25-year-old,
+heavily cited concept. Despite this, the evidence base is built almost
+entirely from single-site case studies or theoretical and review papers;
+there is no global, predictive, spatially-explicit test of the hypothesis.
+
+The most current authoritative synthesis [@Ricciardi2025] explicitly names
+multi-species biotic-interaction effects as an open, unaddressed gap in
+current invasion modeling. A systematic review of 150 invasional-meltdown
+studies confirmed broad support but with biases and gaps [@Braga2018], and a
+large IPBES-linked consortium assessment found that freshwater systems carry
+among the largest documented knowledge gaps in global alien-species status
+and trend assessment [@Seebens2025].
+
+Species distribution modeling (SDM) of invasive species is mature and
+well-established [@Early2016], but no study has used it to explicitly map
+where multiple independently-introduced invaders' predicted ranges overlap,
+as a quantitative signal of compounding or meltdown risk.
+
+**The gap, stated plainly:** nobody has combined (a) global SDM/occurrence-based
+range prediction, (b) multiple co-occurring freshwater invaders across taxa,
+and (c) explicit cross-referencing against real-world co-occurrence records
+and biodiversity value, to predict where the *next* invasional meltdown is
+most likely — before it shows up in the observational record.
+
+### Research questions
+
+1. What is the current (and projected future) climatically/hydrologically
+   suitable range of each shortlisted invasive freshwater species?
+2. Where do multiple species' predicted suitable ranges spatially
+   co-occur, more than expected under a null/random model?
+3. Of the high-compounding-risk zones identified, which do not yet show
+   documented multi-species co-occurrence in the real occurrence record —
+   the "primed but not yet hit" zones?
+4. Do those emerging zones disproportionately overlap freshwater
+   biodiversity hotspots or high-endemism areas?
+5. (Extension) Do projected future refugia for native fish coincide with
+   zones of increasing invader-overlap suitability under the same climate
+   forcing [@Wang2026]?
+
+## Methods
+
+### Species and occurrence data
+
+`r nrow(species_list)` species spanning fish, crayfish, and bivalves across
+five or more source regions were selected from the GBIF taxonomic backbone
+(Table 1; see `analysis.qmd` for the full acquisition and cleaning pipeline).
+
+```{r}
+#| label: tbl-species
+#| echo: false
+#| tbl-cap: "Shortlisted invasive freshwater species."
+species_list |> select(group, species, common_name, gbif_occurrences)
+```
+
+### Predictor variables
+
+<!-- FILL IN: HydroATLAS + FutureStreams predictor description once the
+     pipeline in analysis.qmd is finalized -->
+
+### Species distribution modeling
+
+<!-- FILL IN: ensemble SDM approach (biomod2), validation, projections -->
+
+### Compounding-risk metric
+
+<!-- FILL IN: overlap index definition and null-model test -->
+
+### Validation and biodiversity overlay
+
+<!-- FILL IN -->
+
+## Results
+
+<!-- FILL IN: populate once analysis.qmd produces outputs; reference
+     outputs/figures/ and outputs/tables/ only, do not compute here -->
+
+## Discussion
+
+<!-- FILL IN -->
+
+## Data availability
+
+<!-- FILL IN: GBIF/SInAS/HydroATLAS/FutureStreams accession details; code
+     and derived data archived at Zenodo upon submission (DOI: FILL IN) -->
+
+## References
+
+::: {#refs}
+:::

@@ -1,0 +1,159 @@
+---
+title: "Analysis: Compounding invasion risk in freshwater systems"
+format: html
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+<!-- FILL IN: this file is the single source of truth for every number, table, and
+figure that appears in index.qmd. Nothing gets computed in the manuscript file -->
+
+## 1. Setup
+
+```{r}
+#| label: setup
+# renv::restore()  # FILL IN once renv is initialized (see README)
+
+library(tidyverse)
+library(sf)
+library(terra)
+# library(rgbif)
+# library(biomod2)
+
+dir.create("data/derived", showWarnings = FALSE, recursive = TRUE)
+dir.create("outputs/figures", showWarnings = FALSE, recursive = TRUE)
+dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
+```
+
+## 2. Species shortlist
+
+<!-- FILL IN: load from data/raw/ once the GBIF-checked species table is exported
+     as a CSV; see research_proposal.md Section 4 for the source list -->
+
+```{r}
+#| label: species-list
+species_list <- tribble(
+  ~group,    ~species,                        ~common_name,               ~gbif_occurrences,
+  "Fish",     "Cyprinus carpio",              "Common carp",              326799,
+  "Fish",     "Micropterus salmoides",        "Largemouth bass",          179621,
+  "Crayfish", "Pacifastacus leniusculus",     "Signal crayfish",          114713,
+  "Fish",     "Oreochromis niloticus",        "Nile tilapia",             101395,
+  "Fish",     "Gambusia affinis",             "Mosquitofish",              93064,
+  "Crayfish", "Procambarus clarkii",          "Red swamp crayfish",        87607,
+  "Fish",     "Neogobius melanostomus",       "Round goby",                85983,
+  "Fish",     "Ameiurus nebulosus",           "Brown bullhead catfish",    51581,
+  "Bivalve",  "Dreissena polymorpha",         "Zebra mussel",              43797,
+  "Plant",    "Eichhornia crassipes",         "Water hyacinth",            21326,
+  "Fish",     "Hypophthalmichthys molitrix",  "Silver carp",               14333,
+  "Fish",     "Clarias gariepinus",           "African sharptooth catfish",11459,
+  "Fish",     "Channa argus",                 "Northern snakehead",         7956
+)
+
+write_csv(species_list, "data/derived/species_shortlist.csv")
+species_list
+```
+
+## 3. Occurrence data acquisition & cleaning
+
+<!-- FILL IN: rgbif pulls per species, SInAS cross-check, freshwater/inland
+     filtering, deduplication, spatial thinning. Section 6, step 1 of the
+     proposal. Raw pulls should land in data/raw/ and never be modified there;
+     cleaned versions go to data/derived/ -->
+
+```{r}
+#| label: occurrence-cleaning
+#| eval: false
+# occ_raw <- map(species_list$species, ~ rgbif::occ_search(scientificName = .x, limit = 5000))
+# saveRDS(occ_raw, "data/raw/gbif_occurrences_raw.rds")
+```
+
+## 4. Predictor assembly (HydroATLAS + FutureStreams)
+
+<!-- FILL IN: extract HydroATLAS static variables + FutureStreams derived
+     bioclim-style variables at occurrence points, snapped to the river
+     network. Section 6, step 2 -->
+
+```{r}
+#| label: predictor-assembly
+#| eval: false
+```
+
+## 5. Individual species SDMs
+
+<!-- FILL IN: biomod2 ensemble models per species, current + future
+     projections per RCP/warming level. Section 6, step 3 -->
+
+```{r}
+#| label: species-sdms
+#| eval: false
+#| cache: true
+```
+
+## 6. Compounding-risk metric
+
+<!-- FILL IN: overlay predicted suitable-range rasters, build overlap/
+     stacking index, spatial randomization null-model test. Section 6, step 4 -->
+
+```{r}
+#| label: compounding-risk
+#| eval: false
+```
+
+## 7. Validation against real co-occurrence records
+
+<!-- FILL IN: cross-reference high-overlap cells against documented
+     multi-species co-occurrence (GBIF/SInAS/CABI) to flag "primed but not
+     yet hit" zones. Section 6, step 5 -->
+
+```{r}
+#| label: validation
+#| eval: false
+```
+
+## 8. Biodiversity-value cross-reference
+
+<!-- FILL IN: overlay against WWF Freshwater Ecoregions endemism data.
+     Section 6, step 6 -->
+
+```{r}
+#| label: biodiversity-overlay
+#| eval: false
+```
+
+## 9. Native-refugia overlay (extension)
+
+<!-- FILL IN: compare against Wang et al. (2026)-style thermal-refugia
+     zones using the same FutureStreams data. Section 6, step 7 -->
+
+```{r}
+#| label: refugia-overlay
+#| eval: false
+```
+
+## 10. Sensitivity / robustness checks
+
+<!-- FILL IN: vary overlap threshold, alternative null models, drop
+     highest-occurrence-count species to check they aren't driving results.
+     Section 6, step 8 -->
+
+```{r}
+#| label: robustness
+#| eval: false
+```
+
+## 11. Figures
+
+```{r}
+#| label: fig-placeholder
+#| eval: false
+# ggsave("outputs/figures/fig1_compounding_risk_map.png", plot, width = 8, height = 6, dpi = 300)
+```
+
+## 12. Session info
+
+```{r}
+#| label: session-info
+sessionInfo()
+```
