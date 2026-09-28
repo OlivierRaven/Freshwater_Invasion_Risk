@@ -1,0 +1,14 @@
+group,species,common_name,gbif_occurrences,usageKey,matchType,confidence
+Fish,Cyprinus carpio,Common carp,326799,4286975,EXACT,100
+Fish,Micropterus salmoides,Largemouth bass,179621,2394563,EXACT,100
+Crayfish,Pacifastacus leniusculus,Signal crayfish,114713,2226990,EXACT,100
+Fish,Oreochromis niloticus,Nile tilapia,101395,4285694,EXACT,99
+Fish,Gambusia affinis,Mosquitofish,93064,2350580,EXACT,100
+Crayfish,Procambarus clarkii,Red swamp crayfish,87607,2227300,EXACT,100
+Fish,Neogobius melanostomus,Round goby,85983,2379089,EXACT,100
+Fish,Ameiurus nebulosus,Brown bullhead catfish,51581,2340989,EXACT,100
+Bivalve,Dreissena polymorpha,Zebra mussel,43797,2287072,EXACT,100
+Plant,Eichhornia crassipes,Water hyacinth,21326,2765940,EXACT,100
+Fish,Hypophthalmichthys molitrix,Silver carp,14333,2362473,EXACT,100
+Fish,Clarias gariepinus,African sharptooth catfish,11459,5202793,EXACT,100
+Fish,Channa argus,Northern snakehead,7956,4284921,EXACT,100

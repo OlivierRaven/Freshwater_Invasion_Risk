@@ -1,0 +1,354 @@
+usageKey,species_requested,taxon_group
+9809222,Abramis brama,Fish
+2402120,Acipenser fulvescens,Fish
+2402122,Acipenser transmontanus,Fish
+2360305,Alburnoides bipunctatus,Fish
+2362925,Alburnus alburnus,Fish
+2865152,Alisma gramineum,Plant (strict freshwater habitat tag only)
+2865125,Alisma lanceolatum,Plant (strict freshwater habitat tag only)
+2865100,Alisma plantago-aquatica,Plant (strict freshwater habitat tag only)
+2412708,Alosa aestivalis,Fish
+2412740,Alosa pseudoharengus,Fish
+2412661,Alosa sapidissima,Fish
+2394514,Ambloplites rupestris,Fish
+2340977,Ameiurus melas,Fish
+2340969,Ameiurus natalis,Fish
+2340989,Ameiurus nebulosus,Fish
+5207891,Amia calva,Fish
+9991201,Ampullaceana balthica,Gastropod
+5212973,Anguilla anguilla,Fish
+5712356,Anguilla australis,Fish
+5212956,Anguilla rostrata,Fish
+5204681,Apeltes quadracus,Fish
+2401749,Aphredoderus sayanus,Fish
+2371221,Apistogramma,Fish
+2400265,Aplodinotus grunniens,Fish
+5330661,Arum italicum,Plant (strict freshwater habitat tag only)
+2206247,Asellus aquaticus,Crayfish/crab (Malacostraca)
+2226998,Astacus astacus,Crayfish/crab (Malacostraca)
+5204344,Astyanax mexicanus,Fish
+2411944,Atherina boyeri,Fish
+2346754,Atractosteus spatula,Fish
+2650107,Azolla filiculoides,Plant (strict freshwater habitat tag only)
+2864546,Baldellia ranunculoides,Plant (strict freshwater habitat tag only)
+2367033,Ballerus ballerus,Fish
+5204862,Barbatula barbatula,Fish
+5739539,Barbus barbus,Fish
+2299854,Bithynia tentaculata,Gastropod
+2359471,Blicca bjoerkna,Fish
+2882443,Cabomba caroliniana,Plant (strict freshwater habitat tag only)
+5372487,Callitriche stagnalis,Plant (strict freshwater habitat tag only)
+2361357,Campostoma anomalum,Fish
+2361339,Campostoma oligolepis,Fish
+2371467,Caquetaia kraussii,Fish
+4286942,Carassius auratus,Fish
+2366645,Carassius carassius,Fish
+2366634,Carassius gibelio,Fish
+2358948,Carpiodes carpio,Fish
+2358950,Carpiodes cyprinus,Fish
+2291066,Carychium minimum,Gastropod
+4286868,Catostomus catostomus,Fish
+2359014,Catostomus commersonii,Fish
+2882398,Ceratophyllum demersum,Plant (strict freshwater habitat tag only)
+2882404,Ceratophyllum submersum,Plant (strict freshwater habitat tag only)
+4284921,Channa argus,Fish
+4314683,Chelicorophium curvispinum,Crayfish/crab (Malacostraca)
+2400863,Chelon labrosus,Fish
+9234296,Chelon ramada,Fish
+4417558,Cherax destructor,Crayfish/crab (Malacostraca)
+2360551,Chondrostoma nasus,Fish
+5202793,Clarias gariepinus,Fish
+2361174,Clinostomus funduloides,Fish
+2368185,Cobitis taenia,Fish
+2370703,Coptodon zillii,Fish
+8190231,Corbicula fluminea,Bivalve
+2350934,Coregonus,Fish
+2351027,Coregonus albula,Fish
+2351092,Coregonus artedi,Fish
+2351119,Coregonus clupeaformis,Fish
+2351211,Coregonus lavaretus,Fish
+2351174,Coregonus maraena,Fish
+2334177,Cottus asper,Fish
+2334131,Cottus bairdii,Fish
+2217982,Crangonyx pseudogracilis,Crayfish/crab (Malacostraca)
+2362030,Ctenopharyngodon idella,Fish
+2356556,Culaea inconstans,Fish
+5207666,Cyprinella lutrensis,Fish
+5207691,Cyprinella spiloptera,Fish
+5207640,Cyprinella venusta,Fish
+4284440,Cyprinodon variegatus,Fish
+4286975,Cyprinus carpio,Fish
+2367196,Cyprinus rubrofuscus,Fish
+2394622,Dicentrarchus labrax,Fish
+2413541,Dorosoma cepedianum,Fish
+2413553,Dorosoma petenense,Fish
+2287073,Dreissena bugensis,Bivalve
+2287072,Dreissena polymorpha,Bivalve
+5329263,Elodea densa,Plant (strict freshwater habitat tag only)
+5329212,Elodea nuttallii,Plant (strict freshwater habitat tag only)
+2394551,Enneacanthus gloriosus,Fish
+2358939,Erimyzon sucetta,Fish
+2225776,Eriocheir sinensis,Crayfish/crab (Malacostraca)
+4284046,Esox americanus,Fish
+2346633,Esox lucius,Fish
+2346634,Esox masquinongy,Fish
+2346629,Esox niger,Fish
+2382397,Etheostoma blennioides,Fish
+2382341,Etheostoma caeruleum,Fish
+2382319,Etheostoma nigrum,Fish
+2382257,Etheostoma olmstedi,Fish
+2382365,Etheostoma zonale,Fish
+7664805,Euglesa casertana,Bivalve
+7857878,Euglesa henslowana,Bivalve
+8909595,Faxonius limosus,Crayfish/crab (Malacostraca)
+8979506,Faxonius rusticus,Crayfish/crab (Malacostraca)
+8971201,Faxonius virilis,Crayfish/crab (Malacostraca)
+5712054,Fundulus diaphanus,Fish
+5712056,Fundulus heteroclitus,Fish
+5203690,Fundulus notatus,Fish
+5203644,Fundulus zebrinus,Fish
+2291336,Galba truncatula,Gastropod
+2350580,Gambusia affinis,Fish
+2350570,Gambusia holbrooki,Fish
+2219867,Gammarus lacustris,Crayfish/crab (Malacostraca)
+2219853,Gammarus pulex,Crayfish/crab (Malacostraca)
+5864277,Gammarus roeselii,Crayfish/crab (Malacostraca)
+4286327,Gasterosteus aculeatus,Fish
+7769592,Geophagus brasiliensis,Fish
+4409628,Gobio gobio,Fish
+4409629,Gobio lozanoi,Fish
+5209574,Gymnocephalus cernua,Fish
+2290996,Gyraulus parvus,Gastropod
+2365991,Hemibarbus longirostris,Fish
+2367280,Hemiculter leucisculus,Fish
+2373136,Herichthys cyanoguttatus,Fish
+2352230,Hoplias malabaricus,Fish
+2364391,Hybognathus placitus,Fish
+5329570,Hydrilla verticillata,Plant (strict freshwater habitat tag only)
+5329266,Hydrocharis morsus-ranae,Plant (strict freshwater habitat tag only)
+2358931,Hypentelium nigricans,Fish
+2362473,Hypophthalmichthys molitrix,Fish
+2339615,Hypostomus,Fish
+5202525,Ictalurus furcatus,Fish
+5202520,Ictalurus punctatus,Fish
+2359075,Ictiobus bubalus,Fish
+2412271,Labidesthes sicculus,Fish
+2865565,Lagarosiphon major,Plant (strict freshwater habitat tag only)
+2393172,Lates calcarifer,Fish
+2867569,Lemna gibba,Plant (strict freshwater habitat tag only)
+2867589,Lemna minor,Plant (strict freshwater habitat tag only)
+2867614,Lemna minuta,Plant (strict freshwater habitat tag only)
+2867631,Lemna turionifera,Plant (strict freshwater habitat tag only)
+2346692,Lepisosteus oculatus,Fish
+2346698,Lepisosteus platyrhincus,Fish
+2394491,Lepomis auritus,Fish
+2394494,Lepomis cyanellus,Fish
+2394486,Lepomis gibbosus,Fish
+2394507,Lepomis gulosus,Fish
+2394483,Lepomis humilis,Fish
+2394503,Lepomis macrochirus,Fish
+2394497,Lepomis marginatus,Fish
+2394510,Lepomis megalotis,Fish
+2394501,Lepomis microlophus,Fish
+2394505,Lepomis miniatus,Fish
+2394499,Lepomis punctatus,Fish
+2362881,Leucaspius delineatus,Fish
+5851603,Leuciscus aspius,Fish
+4409643,Leuciscus idus,Fish
+4409641,Leuciscus leuciscus,Fish
+2415460,Lota lota,Fish
+2349567,Lucania parva,Fish
+2363097,Luciobarbus graellsii,Fish
+2864775,Luronium natans,Plant (strict freshwater habitat tag only)
+2385069,Lutjanus argentimaculatus,Fish
+2366993,Luxilus chrysocephalus,Fish
+2366967,Luxilus cornutus,Fish
+2291253,Lymnaea stagnalis,Gastropod
+2869311,Lysichiton americanus,Plant (strict freshwater habitat tag only)
+2380484,Maccullochella peelii,Fish
+5209327,Macquaria ambigua,Fish
+5209329,Macquaria novemaculeata,Fish
+7820753,Magallana gigas,Bivalve
+7275825,Marsilea drummondii,Plant (strict freshwater habitat tag only)
+5274875,Marsilea quadrifolia,Plant (strict freshwater habitat tag only)
+9539561,Mayaheros urophthalmus,Fish
+4362965,Melanoides tuberculata,Gastropod
+4284264,Melanotaenia splendida,Fish
+2412295,Menidia beryllina,Fish
+5211250,Micropterus dolomieu,Fish
+5211245,Micropterus punctulatus,Fish
+2394563,Micropterus salmoides,Fish
+2358945,Minytrema melanops,Fish
+2367919,Misgurnus anguillicaudatus,Fish
+2367936,Misgurnus fossilis,Fish
+2367907,Misgurnus mizolepis,Fish
+2394604,Morone americana,Fish
+2394598,Morone chrysops,Fish
+2394612,Morone saxatilis,Fish
+2358966,Moxostoma erythrurum,Fish
+2359006,Moxostoma macrolepidotum,Fish
+8189568,Mugil cephalus,Fish
+2400641,Mugil curema,Fish
+5361785,Myriophyllum aquaticum,Plant (strict freshwater habitat tag only)
+5361760,Myriophyllum spicatum,Plant (strict freshwater habitat tag only)
+5361779,Myriophyllum verticillatum,Plant (strict freshwater habitat tag only)
+5329315,Najas flexilis,Plant (strict freshwater habitat tag only)
+5329324,Najas marina,Plant (strict freshwater habitat tag only)
+5329434,Najas minor,Plant (strict freshwater habitat tag only)
+2882449,Nelumbo nucifera,Plant (strict freshwater habitat tag only)
+2379105,Neogobius fluviatilis,Fish
+2379089,Neogobius melanostomus,Fish
+2360929,Nipponocypris temminckii,Fish
+2365443,Nocomis biguttatus,Fish
+2365439,Nocomis leptocephalus,Fish
+2365441,Nocomis micropogon,Fish
+2363714,Notemigonus crysoleucas,Fish
+2362170,Notropis atherinoides,Fish
+2362225,Notropis boops,Fish
+2362253,Notropis buccatus,Fish
+2366615,Notropis dorsalis,Fish
+2362185,Notropis hudsonius,Fish
+2362326,Notropis rubellus,Fish
+2362216,Notropis stramineus,Fish
+2362312,Notropis texanus,Fish
+2362211,Notropis volucellus,Fish
+2341033,Noturus flavus,Fish
+2341016,Noturus gyrinus,Fish
+6434985,Nuphar advena,Plant (strict freshwater habitat tag only)
+7551339,Nuphar lutea,Plant (strict freshwater habitat tag only)
+6435002,Nuphar pumila,Plant (strict freshwater habitat tag only)
+2882411,Nymphaea,Plant (strict freshwater habitat tag only)
+2882437,Nymphaea alba,Plant (strict freshwater habitat tag only)
+7410966,Nymphaea candida,Plant (strict freshwater habitat tag only)
+7802465,Nymphaea marliacea,Plant (strict freshwater habitat tag only)
+7326947,Nymphaea nouchali,Plant (strict freshwater habitat tag only)
+2882412,Nymphaea odorata,Plant (strict freshwater habitat tag only)
+5341503,Nymphoides indica,Plant (strict freshwater habitat tag only)
+8810827,Nymphoides peltata,Plant (strict freshwater habitat tag only)
+5711980,Oncorhynchus clarkii,Fish
+5711983,"Oncorhynchus clarkii lewisi (Girard, 1856)",Fish
+5204037,Oncorhynchus gorbuscha,Fish
+5204014,Oncorhynchus keta,Fish
+5204034,Oncorhynchus kisutch,Fish
+5204019,Oncorhynchus mykiss,Fish
+5204039,Oncorhynchus nerka,Fish
+5204024,Oncorhynchus tshawytscha,Fish
+2372396,Oreochromis mossambicus,Fish
+4285694,Oreochromis niloticus,Fish
+2368375,Oryzias sinensis,Fish
+2410854,Osmerus eperlanus,Fish
+4283983,Osmerus mordax,Fish
+2360041,Pachychilon pictum,Fish
+2226990,Pacifastacus leniusculus,Crayfish/crab (Malacostraca)
+2382004,Perca flavescens,Fish
+8140485,Perca fluviatilis,Fish
+2382103,Percina caprodes,Fish
+2382061,Percina maculata,Fish
+2382032,Percina nigrofasciata,Fish
+2401709,Percopsis omiscomaycus,Fish
+10075852,Peregriana labiata,Gastropod
+8236498,Petromyzon marinus,Fish
+2363799,Phenacobius mirabilis,Fish
+4409653,Phoxinus phoxinus,Fish
+7568032,Physa fontinalis,Gastropod
+5189806,Physella acuta,Gastropod
+5189789,Physella gyrina,Gastropod
+2367736,Pimephales notatus,Fish
+2367742,Pimephales promelas,Fish
+2367733,Pimephales vigilax,Fish
+2286691,Pisidium amnicum,Bivalve
+2870583,Pistia stratiotes,Plant (strict freshwater habitat tag only)
+2290946,Planorbarius corneus,Gastropod
+5189729,Planorbella,Gastropod
+5189748,Planorbella trivolvis,Gastropod
+5778419,Planorbis carinatus,Gastropod
+2409330,Platichthys flesus,Fish
+5203752,Poecilia latipinna,Fish
+8400492,Poecilia mexicana,Fish
+2350050,Poecilia reticulata,Fish
+7532642,Pomacea maculata,Gastropod
+2394534,Pomoxis annularis,Fish
+2394526,Pomoxis nigromaculatus,Fish
+2765942,Pontederia crassipes,Plant (strict freshwater habitat tag only)
+4285968,Ponticola kessleri,Fish
+6389089,Potamogeton berchtoldii,Plant (strict freshwater habitat tag only)
+5301162,Potamogeton crispus,Plant (strict freshwater habitat tag only)
+5301141,Potamogeton lucens,Plant (strict freshwater habitat tag only)
+5301233,Potamogeton nodosus,Plant (strict freshwater habitat tag only)
+5301200,Potamogeton perfoliatus,Plant (strict freshwater habitat tag only)
+5301226,Potamogeton polygonifolius,Plant (strict freshwater habitat tag only)
+5301213,Potamogeton praelongus,Plant (strict freshwater habitat tag only)
+8351789,Potamogeton pusillus,Plant (strict freshwater habitat tag only)
+5642073,Potamogeton trichoides,Plant (strict freshwater habitat tag only)
+5192470,Potamopyrgus antipodarum,Gastropod
+2205951,Proasellus coxalis,Crayfish/crab (Malacostraca)
+2206086,Proasellus meridianus,Crayfish/crab (Malacostraca)
+2227289,Procambarus acutus,Crayfish/crab (Malacostraca)
+2227300,Procambarus clarkii,Crayfish/crab (Malacostraca)
+2379245,Proterorhinus semilunaris,Fish
+2366349,Pseudogobio esocinus,Fish
+2362868,Pseudorasbora parva,Fish
+2339954,Pterygoplichthys,Fish
+5739510,Pungitius pungitius,Fish
+2367018,Pungtungia herzi,Fish
+2287951,Pyganodon grandis,Bivalve
+2341077,Pylodictis olivaris,Fish
+5189888,Radix auricularia,Gastropod
+3033464,Ranunculus aquatilis,Plant (strict freshwater habitat tag only)
+2343735,Rhamdia quelen,Fish
+2359823,Rhinichthys atratulus,Fish
+2359811,Rhinichthys cataractae,Fish
+2359791,Rhinichthys osculus,Fish
+2377583,Rhinogobius brunneus,Fish
+2227663,Rhithropanopeus harrisii,Crayfish/crab (Malacostraca)
+2360842,Rhodeus amarus,Fish
+4286934,Rhodeus ocellatus,Fish
+8244689,Riccia fluitans,Plant (strict freshwater habitat tag only)
+2688638,Ricciocarpos natans,Plant (strict freshwater habitat tag only)
+2359706,Rutilus rutilus,Fish
+5328895,Sagittaria lancifolia,Plant (strict freshwater habitat tag only)
+5328909,Sagittaria latifolia,Plant (strict freshwater habitat tag only)
+5329007,Sagittaria platyphylla,Plant (strict freshwater habitat tag only)
+5328882,Sagittaria sagittifolia,Plant (strict freshwater habitat tag only)
+7595433,Salmo salar,Fish
+6169634,"Salmo salar sebago Girard, 1853",Fish
+8215487,Salmo trutta,Fish
+4284021,Salvelinus alpinus,Fish
+2351271,Salvelinus fontinalis,Fish
+2351327,Salvelinus namaycush,Fish
+5274860,Salvinia minima,Plant (strict freshwater habitat tag only)
+5274863,Salvinia molesta,Plant (strict freshwater habitat tag only)
+5274858,Salvinia natans,Plant (strict freshwater habitat tag only)
+2382155,Sander lucioperca,Fish
+2382172,Sander vitreus,Fish
+2362635,Scardinius erythrophthalmus,Fish
+2360481,Semotilus atromaculatus,Fish
+2360492,Semotilus corporalis,Fish
+2337607,Silurus glanis,Fish
+2286709,Sphaerium corneum,Bivalve
+4097481,Spirodela polyrhiza,Plant (strict freshwater habitat tag only)
+4287002,Squalidus gracilis,Fish
+2365685,Squalius cephalus,Fish
+5329192,Stratiotes aloides,Plant (strict freshwater habitat tag only)
+5208028,Strongylura marina,Fish
+8375218,Stuckenia filiformis,Plant (strict freshwater habitat tag only)
+7871428,Stuckenia pectinata,Plant (strict freshwater habitat tag only)
+2374521,Terapon jarbua,Fish
+2374535,Terapon theraps,Fish
+5303044,Thalia geniculata,Plant (strict freshwater habitat tag only)
+2291444,Theodoxus fluviatilis,Gastropod
+5203999,Thymallus thymallus,Fish
+2362524,Tinca tinca,Fish
+3188757,Trapa natans,Plant (strict freshwater habitat tag only)
+5211177,Trichopodus pectoralis,Fish
+2865321,Triglochin striata,Plant (strict freshwater habitat tag only)
+5203110,Umbra limi,Fish
+5203111,Umbra pygmaea,Fish
+2865526,Vallisneria spiralis,Plant (strict freshwater habitat tag only)
+2298076,Valvata piscinalis,Gastropod
+2360504,Vimba vimba,Fish
+5190145,Viviparus,Gastropod
+5725685,Viviparus viviparus,Gastropod
+5330092,Wolffia arrhiza,Plant (strict freshwater habitat tag only)
+8246728,Xiphophorus hellerii,Fish
+2365787,Zacco platypus,Fish

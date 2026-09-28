@@ -23,5 +23,16 @@ renv/staging/
 # then switch to Git LFS or exclude specific large files here)
 data/raw/*.nc
 data/raw/*.tif
+# Third-party raw data: re-download from Zenodo (see analysis.qmd section 1a)
+data/raw/sinas/
+# 57 MB, re-created by analysis.qmd from the raw GBIF pulls (on the external drive)
+data/derived/bulk_353_gbif_occurrences_clean.csv
+
+# knitr cache / render artefacts
+analysis_cache/
+analysis.rmarkdown
+
+# Publisher PDFs are copyrighted -- keep local, never publish
+references/references_pdfs/
 
 **/*.quarto_ipynb

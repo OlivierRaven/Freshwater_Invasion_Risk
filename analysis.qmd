@@ -19,12 +19,339 @@ figure that appears in index.qmd. Nothing gets computed in the manuscript file -
 library(tidyverse)
 library(sf)
 library(terra)
-# library(rgbif)
+library(rgbif)
 # library(biomod2)
+
+# Bulk raw data (GBIF pulls, HydroATLAS, FutureStreams) lives on the external
+# drive, not in the project folder, to keep the internal disk free. Override
+# with the FIW_DATA_ROOT environment variable on another machine. Stop early
+# with a clear message if the drive is missing -- otherwise the GBIF pull code
+# would see an "empty" folder and start re-downloading everything.
+data_root <- Sys.getenv(
+  "FIW_DATA_ROOT",
+  "/Volumes/Disk_OR/Freshwater_Invasion_Risk_data"
+)
+if (!dir.exists(data_root)) {
+  stop("Data drive not found at: ", data_root,
+       "\nPlug in the external drive (or set FIW_DATA_ROOT) before rendering.")
+}
+gbif_raw_dir <- file.path(data_root, "gbif_raw")
+hydroatlas_dir <- file.path(data_root, "hydroatlas")
+futurestreams_dir <- file.path(data_root, "futurestreams")
+if (!dir.exists(gbif_raw_dir) || length(list.files(gbif_raw_dir, pattern = "\\.rds$")) == 0) {
+  warning("gbif_raw is empty or missing at ", gbif_raw_dir,
+          " -- the occurrence pull sections will re-download from GBIF.")
+}
 
 dir.create("data/derived", showWarnings = FALSE, recursive = TRUE)
 dir.create("outputs/figures", showWarnings = FALSE, recursive = TRUE)
 dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
+```
+
+## 1a. Candidate species expansion (SInAS-derived, 2026-09-05)
+
+<!-- Decision (discussed with user 2026-09-05): the original 13-species
+     shortlist (Section 2 below) was a hand-picked "dirty dozen"-style set.
+     To make the compounding-risk null-model test (research_proposal.md
+     Section 6 step 4) a genuine global test rather than a curated example,
+     build the candidate list systematically from SInAS -- the alien-species
+     database already planned as a data source (research_proposal.md
+     Section 5) -- filtered to freshwater habitat, then screened by GBIF
+     occurrence-record depth. Species below the depth threshold get dropped
+     the same way the two "marginal" species were in Section 4, not silently
+     kept. Source: SInAS_AlienSpeciesDB_2.5.csv, Zenodo DOI 10.5281/zenodo.10038256
+     (Seebens et al. 2020), downloaded to data/raw/sinas/. -->
+
+```{r}
+#| label: sinas-freshwater-filter
+sinas_raw <- read_delim(
+  "data/raw/sinas/SInAS_AlienSpeciesDB_2.5.csv",
+  delim = " ",
+  quote = "\"",
+  show_col_types = FALSE
+)
+
+# habitat is a ";"-joined multi-value field (e.g. "freshwater; terrestrial") --
+# keep any row that includes freshwater at all, since a species doesn't need
+# to be freshwater-exclusive to be a freshwater invader.
+sinas_freshwater <- sinas_raw |>
+  filter(str_detect(habitat, "freshwater"))
+
+cat("Freshwater-habitat records in SInAS:", nrow(sinas_freshwater), "\n")
+cat(
+  "Distinct freshwater alien species (raw Taxon field):",
+  n_distinct(sinas_freshwater$Taxon),
+  "\n"
+)
+
+sinas_species_candidates <- sinas_freshwater |>
+  distinct(Taxon, .keep_all = FALSE) |>
+  rename(species = Taxon) |>
+  arrange(species)
+
+write_csv(
+  sinas_species_candidates,
+  "data/derived/sinas_freshwater_species_raw_list.csv"
+)
+```
+
+```{r}
+#| label: sinas-gbif-backbone-match
+#| cache: true
+# Batch-resolve all candidate names against the GBIF backbone in one call
+# (name_backbone_checklist is vectorised -- orders of magnitude faster than
+# looping name_backbone() per species, which is what Section 2's 13-species
+# match used).
+backbone_path <- "data/derived/sinas_gbif_backbone_match.csv"
+
+if (!file.exists(backbone_path)) {
+  # First attempt (2026-09-05) used the default bucket_size = 300 and failed
+  # with "try lower bucket_size or larger sleep" -- 2,721 names in one async
+  # job overwhelmed the endpoint. Smaller buckets + longer pauses fixed it.
+  backbone_matches <- rgbif::name_backbone_checklist(
+    sinas_species_candidates$species,
+    bucket_size = 100,
+    sleep = 3
+  )
+  backbone_matches$species_requested <- sinas_species_candidates$species
+  write_csv(backbone_matches, backbone_path)
+} else {
+  backbone_matches <- read_csv(backbone_path, show_col_types = FALSE)
+}
+
+# Keep confident matches only (EXACT or close FUZZY), drop anything GBIF
+# couldn't resolve to a usable taxon key.
+sinas_matched <- backbone_matches |>
+  filter(!is.na(usageKey), matchType %in% c("EXACT", "FUZZY")) |>
+  distinct(usageKey, .keep_all = TRUE) # collapse synonyms mapping to the same accepted key
+
+cat(
+  "Resolved to a GBIF taxon key:",
+  nrow(sinas_matched),
+  "of",
+  nrow(sinas_species_candidates),
+  "candidate names\n"
+)
+```
+
+## 1b. Taxonomic scope filter (decided with user, 2026-09-05)
+
+<!-- The raw SInAS "freshwater habitat" tag is not restricted to
+     aquatic-obligate species -- it also tags any species that USES
+     freshwater habitat at all, which pulled in 203 bird species (including
+     mallard, at 29.6 million GBIF occurrences from eBird), plus turtles,
+     crocodilians, and mammals. Left in, these would dominate and invalidate
+     the compounding-risk species pool. Decision (discussed with user,
+     2026-09-05): keep fish, crayfish/crabs/shrimp (Malacostraca), bivalves,
+     gastropods, and aquatic plants; exclude birds, mammals, amphibians, and
+     reptiles entirely (not "flagged for later" -- fully out of scope). -->
+
+```{r}
+#| label: sinas-taxonomic-filter
+# GBIF's backbone frequently leaves `class` blank for fish (a known quirk --
+# confirmed 2026-09-05 by checking the project's own 13 shortlisted species,
+# e.g. Cyprinus carpio resolves with class = NA despite being Actinopterygii),
+# so fish have to be caught via order, not class, for the NA-class rows.
+fish_orders <- c(
+  "Cypriniformes",
+  "Perciformes",
+  "Siluriformes",
+  "Salmoniformes",
+  "Cyprinodontiformes",
+  "Characiformes",
+  "Atheriniformes",
+  "Esociformes",
+  "Osteoglossiformes",
+  "Clupeiformes",
+  "Acipenseriformes",
+  "Synbranchiformes",
+  "Tetraodontiformes",
+  "Anguilliformes",
+  "Mugiliformes",
+  "Osmeriformes",
+  "Gasterosteiformes",
+  "Beloniformes",
+  "Lepisosteiformes",
+  "Scorpaeniformes",
+  "Percopsiformes",
+  "Gymnotiformes",
+  "Polypteriformes",
+  "Amiiformes",
+  "Gadiformes",
+  "Gonorynchiformes",
+  "Pleuronectiformes",
+  "Syngnathiformes"
+)
+
+is_fish <- with(
+  sinas_matched,
+  class %in%
+    c("Actinopterygii", "Petromyzonti", "Dipneusti", "Elasmobranchii") |
+    (phylum == "Chordata" & is.na(class) & order %in% fish_orders)
+)
+is_crayfish_crab <- sinas_matched$class == "Malacostraca"
+is_bivalve <- sinas_matched$class == "Bivalvia"
+is_gastropod <- sinas_matched$class == "Gastropoda"
+
+# Plants: taxonomy alone can't separate obligate-aquatic species (water
+# hyacinth, giant salvinia) from wetland-margin/terrestrial-tolerant weeds
+# within the same plant classes. Proxy: keep a plant species only if at
+# least one of its SInAS records is tagged habitat == "freshwater" *exactly*
+# (not a combined "freshwater; terrestrial" tag) -- biases toward more
+# aquatic-obligate species. Documented limitation, not a precise filter --
+# worth a manual literature check on whichever plant species pass this and
+# the occurrence-count threshold, before they go into the final shortlist.
+plant_species_strict_freshwater <- sinas_freshwater |>
+  filter(habitat == "freshwater") |>
+  distinct(Taxon) |>
+  pull(Taxon)
+is_plant <- sinas_matched$kingdom == "Plantae" &
+  sinas_matched$species_requested %in% plant_species_strict_freshwater
+
+taxon_group <- case_when(
+  is_fish ~ "Fish",
+  is_crayfish_crab ~ "Crayfish/crab (Malacostraca)",
+  is_bivalve ~ "Bivalve",
+  is_gastropod ~ "Gastropod",
+  is_plant ~ "Plant (strict freshwater habitat tag only)",
+  TRUE ~ NA_character_
+)
+
+sinas_matched_scoped <- sinas_matched |>
+  mutate(taxon_group = taxon_group) |>
+  filter(!is.na(taxon_group))
+
+write_csv(sinas_matched_scoped, "data/derived/sinas_matched_scoped.csv")
+
+cat(
+  "In taxonomic scope:",
+  nrow(sinas_matched_scoped),
+  "of",
+  nrow(sinas_matched),
+  "GBIF-resolved candidates\n"
+)
+count(sinas_matched_scoped, taxon_group, sort = TRUE)
+```
+
+```{r}
+#| label: sinas-occurrence-counts
+#| cache: true
+# Lightweight per-species occurrence COUNT (not a full record pull) to
+# screen candidates by data depth before deciding which get a full SDM.
+# Checkpointed to CSV so this multi-thousand-call loop is resumable if
+# interrupted -- do not re-query keys already recorded.
+count_path <- "data/derived/sinas_gbif_occurrence_counts.csv"
+
+existing_counts <- if (file.exists(count_path)) {
+  read_csv(count_path, show_col_types = FALSE) |>
+    mutate(usageKey = as.numeric(usageKey))
+} else {
+  tibble(
+    usageKey = numeric(),
+    species_requested = character(),
+    n_occurrences = numeric()
+  )
+}
+
+# usageKey type wasn't consistent between a fresh CSV-backed skeleton
+# (integer) and what name_backbone_checklist actually returns -- force both
+# sides to numeric before the filter/bind so this doesn't silently drop or
+# fail to match already-queried keys. Query only the taxonomically-scoped
+# set (Section 1b) -- no point spending API calls counting mallard ducks.
+sinas_matched_scoped <- sinas_matched_scoped |>
+  mutate(usageKey = as.numeric(usageKey))
+
+keys_to_query <- sinas_matched_scoped |>
+  filter(!usageKey %in% existing_counts$usageKey)
+
+if (nrow(keys_to_query) > 0) {
+  new_counts <- pmap_dfr(
+    list(keys_to_query$usageKey, keys_to_query$species_requested),
+    function(key, sp) {
+      n <- tryCatch(
+        rgbif::occ_count(
+          taxonKey = key,
+          hasCoordinate = TRUE,
+          hasGeospatialIssue = FALSE
+        ),
+        error = function(e) NA_real_
+      )
+      tibble(
+        usageKey = as.numeric(key),
+        species_requested = sp,
+        n_occurrences = as.numeric(n)
+      )
+    },
+    .progress = TRUE
+  )
+  all_counts <- bind_rows(existing_counts, new_counts)
+  write_csv(all_counts, count_path)
+} else {
+  all_counts <- existing_counts
+}
+
+cat(
+  "Occurrence counts resolved for",
+  nrow(all_counts),
+  "species (all taxa queried to date --",
+  "includes out-of-scope taxa from before the Section 1b filter existed)\n"
+)
+
+# Restrict to the taxonomically-scoped set (Section 1b) before this feeds
+# any species-count decision -- all_counts/count_path is kept as a general
+# cache of everything ever queried, not a pre-filtered analysis table.
+scoped_counts <- all_counts |>
+  semi_join(sinas_matched_scoped, by = "usageKey") |>
+  left_join(
+    sinas_matched_scoped |> select(usageKey, taxon_group),
+    by = "usageKey"
+  )
+
+write_csv(scoped_counts, "data/derived/sinas_scoped_occurrence_counts.csv")
+cat(
+  "Occurrence counts within taxonomic scope:",
+  nrow(scoped_counts),
+  "species\n"
+)
+```
+
+```{r}
+#| label: sinas-threshold-summary
+# How many candidate species clear common data-depth thresholds -- this is
+# the number that should drive the final species-count decision, not a
+# guess. Mirrors the two-marginal-species cutoff logic already used for the
+# original 13-species shortlist (research_proposal.md Section 4).
+threshold_summary <- tibble(threshold = c(100, 500, 1000, 5000, 10000)) |>
+  mutate(
+    n_species_at_or_above = map_int(
+      threshold,
+      ~ sum(scoped_counts$n_occurrences >= .x, na.rm = TRUE)
+    )
+  )
+
+write_csv(threshold_summary, "data/derived/sinas_threshold_summary.csv")
+threshold_summary
+```
+
+```{r}
+#| label: sinas-threshold-by-group
+# Same breakdown split by taxon group -- shows where the numbers actually
+# come from (e.g. whether "500+" is mostly fish, or whether crayfish/
+# bivalves/gastropods/plants contribute meaningfully once birds etc. are
+# already excluded).
+threshold_by_group <- scoped_counts |>
+  group_by(taxon_group) |>
+  summarise(
+    n_total = n(),
+    n_ge_500 = sum(n_occurrences >= 500, na.rm = TRUE),
+    n_ge_1000 = sum(n_occurrences >= 1000, na.rm = TRUE),
+    n_ge_5000 = sum(n_occurrences >= 5000, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  arrange(desc(n_ge_1000))
+
+write_csv(threshold_by_group, "data/derived/sinas_threshold_by_group.csv")
+threshold_by_group
 ```
 
 ## 2. Species shortlist
@@ -35,20 +362,20 @@ dir.create("outputs/tables", showWarnings = FALSE, recursive = TRUE)
 ```{r}
 #| label: species-list
 species_list <- tribble(
-  ~group,    ~species,                        ~common_name,               ~gbif_occurrences,
-  "Fish",     "Cyprinus carpio",              "Common carp",              326799,
-  "Fish",     "Micropterus salmoides",        "Largemouth bass",          179621,
-  "Crayfish", "Pacifastacus leniusculus",     "Signal crayfish",          114713,
-  "Fish",     "Oreochromis niloticus",        "Nile tilapia",             101395,
-  "Fish",     "Gambusia affinis",             "Mosquitofish",              93064,
-  "Crayfish", "Procambarus clarkii",          "Red swamp crayfish",        87607,
-  "Fish",     "Neogobius melanostomus",       "Round goby",                85983,
-  "Fish",     "Ameiurus nebulosus",           "Brown bullhead catfish",    51581,
-  "Bivalve",  "Dreissena polymorpha",         "Zebra mussel",              43797,
-  "Plant",    "Eichhornia crassipes",         "Water hyacinth",            21326,
-  "Fish",     "Hypophthalmichthys molitrix",  "Silver carp",               14333,
-  "Fish",     "Clarias gariepinus",           "African sharptooth catfish",11459,
-  "Fish",     "Channa argus",                 "Northern snakehead",         7956
+  ~group     , ~species                      , ~common_name                 , ~gbif_occurrences ,
+  "Fish"     , "Cyprinus carpio"             , "Common carp"                ,            326799 ,
+  "Fish"     , "Micropterus salmoides"       , "Largemouth bass"            ,            179621 ,
+  "Crayfish" , "Pacifastacus leniusculus"    , "Signal crayfish"            ,            114713 ,
+  "Fish"     , "Oreochromis niloticus"       , "Nile tilapia"               ,            101395 ,
+  "Fish"     , "Gambusia affinis"            , "Mosquitofish"               ,             93064 ,
+  "Crayfish" , "Procambarus clarkii"         , "Red swamp crayfish"         ,             87607 ,
+  "Fish"     , "Neogobius melanostomus"      , "Round goby"                 ,             85983 ,
+  "Fish"     , "Ameiurus nebulosus"          , "Brown bullhead catfish"     ,             51581 ,
+  "Bivalve"  , "Dreissena polymorpha"        , "Zebra mussel"               ,             43797 ,
+  "Plant"    , "Eichhornia crassipes"        , "Water hyacinth"             ,             21326 ,
+  "Fish"     , "Hypophthalmichthys molitrix" , "Silver carp"                ,             14333 ,
+  "Fish"     , "Clarias gariepinus"          , "African sharptooth catfish" ,             11459 ,
+  "Fish"     , "Channa argus"                , "Northern snakehead"         ,              7956
 )
 
 write_csv(species_list, "data/derived/species_shortlist.csv")
@@ -57,16 +384,327 @@ species_list
 
 ## 3. Occurrence data acquisition & cleaning
 
-<!-- FILL IN: rgbif pulls per species, SInAS cross-check, freshwater/inland
-     filtering, deduplication, spatial thinning. Section 6, step 1 of the
-     proposal. Raw pulls should land in data/raw/ and never be modified there;
-     cleaned versions go to data/derived/ -->
+<!-- Section 6, step 1 of the proposal. Raw pulls land in data/raw/gbif/ (one
+     file per species) and are never modified in place; cleaned/combined
+     output goes to data/derived/.
+
+     IMPORTANT SCOPE NOTE (2026-09-05, first real pull): this uses rgbif's
+     synchronous occ_search(), capped at occ_limit_per_species records per
+     species. Several shortlisted species have 50,000-300,000+ raw GBIF
+     records (research_proposal.md Section 4) -- pulling ALL of them requires
+     GBIF's asynchronous Download API (a registered GBIF account + email
+     confirmation + a wait for the export to build), which is a manual step
+     outside this notebook. This first pass is a same-day, no-account,
+     capped sample per species, sufficient to prototype the cleaning +
+     predictor-extraction + SDM pipeline end to end (research_proposal.md
+     Section 11, action 5). Re-run with the full Download-API export before
+     final model fitting. -->
+
+```{r}
+#| label: occurrence-taxon-match
+# Resolve each species name to its GBIF backbone taxon key first -- safer
+# than matching on the free-text scientificName string, which can pull in
+# synonyms/homonyms.
+taxon_keys <- species_list |>
+  mutate(
+    kingdom_hint = if_else(group == "Plant", "Plantae", "Animalia"),
+    backbone = map2(
+      species,
+      kingdom_hint,
+      ~ rgbif::name_backbone(name = .x, kingdom = .y)
+    )
+  ) |>
+  unnest_wider(backbone, names_sep = "_") |>
+  select(
+    group,
+    species,
+    common_name,
+    gbif_occurrences,
+    usageKey = backbone_usageKey,
+    matchType = backbone_matchType,
+    confidence = backbone_confidence
+  )
+
+write_csv(taxon_keys, "data/derived/species_taxon_keys.csv")
+taxon_keys |> select(species, usageKey, matchType, confidence)
+```
+
+```{r}
+#| label: occurrence-pull
+#| cache: true
+dir.create(gbif_raw_dir, showWarnings = FALSE, recursive = TRUE)
+
+occ_limit_per_species <- 10000 # see scope note above
+
+pull_one_species <- function(
+  key,
+  species_name,
+  limit = occ_limit_per_species,
+  max_attempts = 5
+) {
+  raw_path <- file.path(
+    gbif_raw_dir,
+    paste0(gsub(" ", "_", species_name), ".rds")
+  )
+  if (file.exists(raw_path)) {
+    return(readRDS(raw_path))
+  } # never re-pull/overwrite raw files
+
+  # GBIF's API occasionally returns transient 503s under load -- retry with
+  # exponential backoff rather than letting one flaky call kill the whole
+  # loop (this happened on the first 13-species attempt, 2026-09-05).
+  #
+  # 2026-09-06 incident: the 353-species bulk pull hung for 11+ hours on a
+  # single species -- a TCP connection to GBIF sat in CLOSE_WAIT with the R
+  # process at 0% CPU, never erroring and never returning, so the retry
+  # logic above never even triggered (there's a difference between "the
+  # server returned an error" and "the connection never comes back", and
+  # only the first one was handled). Added an explicit connect+overall
+  # timeout via curlopts so a stalled connection surfaces as a timeout
+  # error within ~90s and falls into the existing retry/backoff path,
+  # instead of hanging indefinitely and burning 11GB of RAM.
+  for (attempt in seq_len(max_attempts)) {
+    res <- tryCatch(
+      rgbif::occ_search(
+        taxonKey = key,
+        hasCoordinate = TRUE,
+        hasGeospatialIssue = FALSE,
+        limit = limit,
+        curlopts = list(http_version = 2, connecttimeout = 30, timeout = 90)
+      ),
+      error = function(e) e
+    )
+    if (!inherits(res, "error")) {
+      saveRDS(res, raw_path)
+      Sys.sleep(1) # be polite to the GBIF API between species
+      return(res)
+    }
+    message(sprintf(
+      "  %s: attempt %d/%d failed (%s), retrying...",
+      species_name,
+      attempt,
+      max_attempts,
+      conditionMessage(res)
+    ))
+    Sys.sleep(5 * attempt) # 5s, 10s, 15s, 20s backoff
+  }
+  stop(sprintf(
+    "Failed to pull %s after %d attempts",
+    species_name,
+    max_attempts
+  ))
+}
+
+occ_raw <- pmap(
+  list(taxon_keys$usageKey, taxon_keys$species),
+  ~ pull_one_species(..1, ..2)
+)
+names(occ_raw) <- taxon_keys$species
+
+occ_pull_summary <- tibble(
+  species = names(occ_raw),
+  n_pulled = map_int(occ_raw, ~ nrow(.x$data %||% tibble()))
+)
+write_csv(occ_pull_summary, "data/derived/gbif_pull_summary.csv")
+occ_pull_summary
+```
 
 ```{r}
 #| label: occurrence-cleaning
-#| eval: false
-# occ_raw <- map(species_list$species, ~ rgbif::occ_search(scientificName = .x, limit = 5000))
-# saveRDS(occ_raw, "data/raw/gbif_occurrences_raw.rds")
+# Combine, then apply minimal cleaning: keep coordinates + key metadata,
+# drop exact duplicate lat/lon per species. Freshwater/inland filtering
+# (removing marine/estuarine misassignments), full spatial thinning, and the
+# SInAS cross-check are separate steps still to be added -- see the flagged
+# next actions below.
+occ_clean <- map_dfr(names(occ_raw), function(sp) {
+  d <- occ_raw[[sp]]$data
+  if (is.null(d) || nrow(d) == 0) {
+    return(tibble())
+  }
+  d |>
+    select(any_of(c(
+      "species",
+      "decimalLatitude",
+      "decimalLongitude",
+      "year",
+      "country",
+      "basisOfRecord",
+      "coordinateUncertaintyInMeters"
+    ))) |>
+    mutate(species_requested = sp)
+}) |>
+  distinct(
+    species_requested,
+    decimalLatitude,
+    decimalLongitude,
+    .keep_all = TRUE
+  )
+
+write_csv(occ_clean, "data/derived/gbif_occurrences_clean.csv")
+count(occ_clean, species_requested, sort = TRUE)
+```
+
+<!-- STILL TO DO before this feeds the SDM step (Section 6, step 1):
+     1. Freshwater/inland filter -- remove marine/estuarine coordinate
+        misassignments (a known contamination issue for the fish species).
+     2. SInAS cross-check -- confirm "established" status per region rather
+        than trusting every GBIF point as a naturalized occurrence.
+     3. Spatial thinning -- reduce sampling-bias inflation (GBIF favours
+        wealthy/well-surveyed countries).
+     4. Re-pull via GBIF's Download API for species where the 10,000-record
+        cap likely undersamples the true range (carp, bass, tilapia, etc. --
+        see gbif_pull_summary.csv vs. the raw counts in
+        research_proposal.md Section 4).
+
+     DECISION (2026-09-07, confirmed with user): everything pulled via
+     occ_search() in this notebook (both the 13-species prototype and the
+     353-species bulk pull below) is prototyping/pipeline-validation data,
+     NOT the final dataset for model fitting. The user already has a GBIF
+     account and will re-pull the complete record set per species via
+     GBIF's asynchronous Download API (no per-page cap, no pagination
+     throttling) before final SDMs are fit for publication. This is not a
+     scientific compromise: spatial thinning (item 3 above) discards most
+     raw records as redundant regardless of the starting cap, so a capped
+     sample is sufficient to build and test the full pipeline end-to-end
+     now. The real risk of a cap is under-sampling a species' geographic
+     range edges before thinning -- which is exactly why the final,
+     pre-publication run needs the complete Download API export, not a
+     capped sample. -->
+
+
+## 3a. Occurrence pull for the expanded 353-species set (research_proposal.md Section 3b, 2026-09-06)
+```{r}
+#| label: bulk-species-target-list
+scoped_counts <- read_csv(
+  "data/derived/sinas_scoped_occurrence_counts.csv",
+  show_col_types = FALSE
+)
+
+bulk_target_species <- scoped_counts |>
+  filter(n_occurrences >= 5000) |>
+  distinct(usageKey, species_requested, taxon_group)
+
+write_csv(bulk_target_species, "data/derived/bulk_353_species_target_list.csv")
+cat("Target species for this pull:", nrow(bulk_target_species), "\n")
+count(bulk_target_species, taxon_group, sort = TRUE)
+```
+
+```{r}
+#| label: bulk-occurrence-pull
+#| cache: true
+bulk_occ_limit <- 1000 # reduced from 5000 (2026-09-07): individual species were
+# taking 3-5+ hours each (some pages of the ~17-page/species pagination at the
+# 5000 cap appear to be badly throttled by GBIF after hundreds of sequential
+# calls from this IP) -- 1000 records/species is still a standard, sufficient
+# depth for SDM fitting (it's one of our own screening thresholds) and cuts
+# per-species page count roughly 5x. Species already pulled at the 5000 cap
+# keep their existing (better) sample; this only affects species not yet pulled.
+
+bulk_pull_summary_path <- "data/derived/bulk_353_gbif_pull_summary.csv"
+failed_species_path <- "data/derived/bulk_353_failed_species.csv"
+
+# 2026-09-06/07 incident #2: pull_one_species() calls stop() after exhausting
+# its retries, which is correct behaviour for a 13-species prototype but
+# fatal for an unattended 353-species job -- one permanently-failing species
+# (Esox masquinongy, muskellunge) killed the entire pmap() and the process
+# sat idle for hours afterward with no indication anything was wrong beyond
+# a dead R process. Wrap each call so one bad species is logged and skipped,
+# never fatal to the batch. Also drop max_attempts for the bulk run (3
+# instead of the default 5) -- sinking 5 full retries with growing backoff
+# into a species that's already failing is wasted wall-clock time at this
+# scale; log it and move on rather than stall the whole run on one name.
+safe_pull_one_species <- function(key, species_name) {
+  tryCatch(
+    pull_one_species(
+      key,
+      species_name,
+      limit = bulk_occ_limit,
+      max_attempts = 3
+    ),
+    error = function(e) {
+      message(sprintf(
+        "PERMANENTLY FAILED: %s (%s) -- logged, continuing",
+        species_name,
+        conditionMessage(e)
+      ))
+      write_csv(
+        tibble(
+          species = species_name,
+          usageKey = key,
+          error = conditionMessage(e),
+          failed_at = as.character(Sys.time())
+        ),
+        failed_species_path,
+        append = file.exists(failed_species_path)
+      )
+      NULL
+    }
+  )
+}
+
+bulk_occ_raw <- pmap(
+  list(bulk_target_species$usageKey, bulk_target_species$species_requested),
+  ~ safe_pull_one_species(..1, ..2)
+)
+names(bulk_occ_raw) <- bulk_target_species$species_requested
+
+bulk_pull_summary <- tibble(
+  species = names(bulk_occ_raw),
+  n_pulled = map_int(
+    bulk_occ_raw,
+    ~ if (is.null(.x)) NA_integer_ else nrow(.x$data %||% tibble())
+  )
+)
+write_csv(bulk_pull_summary, bulk_pull_summary_path)
+cat(
+  "Species attempted:",
+  nrow(bulk_pull_summary),
+  "| succeeded:",
+  sum(!is.na(bulk_pull_summary$n_pulled)),
+  "| permanently failed:",
+  sum(is.na(bulk_pull_summary$n_pulled)),
+  "\n"
+)
+summary(bulk_pull_summary$n_pulled)
+```
+
+```{r}
+#| label: bulk-occurrence-cleaning
+# Same minimal cleaning as the 13-species prototype (Section 3) -- combine,
+# keep coordinates + key metadata, drop exact duplicate lat/lon per species.
+# The same "STILL TO DO" list above (freshwater/inland filter, SInAS
+# established-status cross-check, spatial thinning) applies here too, at
+# the full 353-species scale.
+bulk_occ_clean <- map_dfr(names(bulk_occ_raw), function(sp) {
+  d <- bulk_occ_raw[[sp]]$data
+  if (is.null(d) || nrow(d) == 0) {
+    return(tibble())
+  }
+  d |>
+    select(any_of(c(
+      "species",
+      "decimalLatitude",
+      "decimalLongitude",
+      "year",
+      "country",
+      "basisOfRecord",
+      "coordinateUncertaintyInMeters"
+    ))) |>
+    mutate(species_requested = sp)
+}) |>
+  distinct(
+    species_requested,
+    decimalLatitude,
+    decimalLongitude,
+    .keep_all = TRUE
+  )
+
+write_csv(bulk_occ_clean, "data/derived/bulk_353_gbif_occurrences_clean.csv")
+cat(
+  "Total cleaned occurrence records across the 353-species set:",
+  nrow(bulk_occ_clean),
+  "\n"
+)
 ```
 
 ## 4. Predictor assembly (HydroATLAS + FutureStreams)

@@ -259,6 +259,106 @@
   note    = {Statistical null-model test of non-random co-occurrence for OBSERVED macroinvertebrate communities (not SDM-predicted ranges), Great Lakes coastal wetlands. Different mechanic and taxa, not a novelty threat -- useful methods citation for the null-model/randomization test in Section 6 step 4.}
 }
 
+% --- Systematic review pass 5 (2026-09-04): author-recency check on
+% watch-list groups via OpenAlex, plus preprint search. URGENT FINDING:
+% GuardIAS (Belinda Gallardo, Horizon Europe Grant 101181413) is an active,
+% funded project replicating this project's core individual-species-SDM
+% mechanic. See Section 10 "being scooped" risk note for full assessment.
+
+@misc{CORDIS_GuardIAS2026,
+  title   = {GuardIAS - Guarding European Waters from IAS},
+  howpublished = {CORDIS, European Commission},
+  year    = {2026},
+  note    = {Grant Agreement 101181413. EUR 7,150,222.50 total (EUR 6,475,880.50 EU contribution), 2025-01-01 to 2027-12-31. Coordinator: Panepistimio Aigaiou (University of the Aegean, Greece). 18-participant consortium incl. Germany, Italy, Norway, Belgium, Spain, Denmark, Lithuania, SMEs, plus NZ company Sequench Limited and University of Sydney as partner -- Gallardo is one partner, not the lead. Scope: applied European biosecurity technology (AI, eDNA, nano-coatings, citizen science, risk modeling), not an academic global invasional-meltdown test. Checked 2026-09-04 to assess "being scooped" risk -- see research\_proposal.md Section 10.}
+}
+
+@software{GuardIAS_SDM2026,
+  title   = {Global species distribution models for freshwater invasive alien species in Europe (modified wiSDM v.2 workflow)},
+  author  = {Gallardo, Belinda and others},
+  year    = {2026},
+  howpublished = {Zenodo},
+  doi     = {10.5281/zenodo.21791837},
+  note    = {URGENT -- found 2026-09-04. Active Horizon Europe project (Grant 101181413) software deposit (2026-08-04). 10-algorithm ensemble SDM (GLM/GAM/BIOCLIM/BRT/RF/MARS/MaxEnt/FDA/CART, top-5 consensus), globally calibrated on GBIF occurrences (1971-2025), projected onto a European 5km grid, current + SSP1-2.6/SSP3-7.0/SSP5-8.5 futures. Predictors: CHELSA climate + human footprint + distance to reservoirs (HydroLAKES) + stream power index (Hydrography90m) -- functionally the same category of freshwater/hydromorphological predictors this project's proposal calls for from HydroATLAS. Replicates this project's Q1 individual-species-SDM step closely. Differentiator still standing: projection is Europe-only not global, and no compounding-risk/overlap metric, null-model test, real-co-occurrence validation, or biodiversity overlay has surfaced in what's deposited. See CORDIS for full GuardIAS project scope/timeline/consortium before deciding how to respond.}
+}
+
+@software{GuardIAS_Interactions2026,
+  title   = {T3.1 Interaction network GuardIAS},
+  author  = {Gallardo, Belinda and others},
+  year    = {2026},
+  howpublished = {Zenodo},
+  doi     = {10.5281/zenodo.21792533},
+  note    = {URGENT -- found 2026-09-04. Same GuardIAS project, separate work package (T3.1): R pipeline building a standardized dataset of ecological interactions between IUCN Red List (threatened) species and invasive alien species, integrating GLOBI/GIDIAS/IUCN Red List data, interaction types mapped to EICAT impact mechanism categories. Adjacent to this project's Q4 biodiversity-stakes overlay -- a future GuardIAS work package could plausibly combine this with the SDM outputs (GuardIAS\_SDM2026) to produce something close to this project's Q3/Q4.}
+}
+
+@article{GallardoSanchezCaro2026,
+  title   = {Invasions feeding invasions: functional responses reveal trophic links among aquatic invasive species},
+  author  = {Gallardo, Belinda and S\'anchez-Caro, Christian and C\'espedes, Vanessa and Picazo, F\'elix and Jim\'enez-Li\'ebanas, Laura},
+  journal = {NeoBiota},
+  year    = {2026},
+  doi     = {10.3897/neobiota.108.190226},
+  note    = {URGENT -- found 2026-09-04. Published July 2026, same Gallardo group. Semi-natural enclosure experiments quantifying functional responses between co-occurring invaders in the Lower Ebro River, Spain: apple snail (Pomacea maculata) and blue crab (Callinectes sapidus), the latter preying on invasive Asian clam Corbicula fluminea (a candidate species addition for this project, Section 4). Finds an "all-invasive trophic chain" -- direct experimental evidence of invader-invader facilitation. Mechanistic/experimental, not spatial/SDM-based; 2-4 species, regional (Mediterranean Spain). Confirms Gallardo's group is actively researching the facilitation angle too, from a different methodological direction.}
+}
+
+@article{Rocaspana2026,
+  title   = {Spatial Expansion and Ecological Correlates of Invasive Crayfish Procambarus clarkii and Pacifastacus leniusculus in Mediterranean Rivers of Catalonia (NE Iberian Peninsula)},
+  author  = {Rocaspana, Rafel and Pou-Rovira, Quim and Aparicio, Enric},
+  year    = {2026},
+  howpublished = {EcoEvoRxiv preprint},
+  doi     = {10.32942/x2f95n},
+  note    = {Found via OpenAlex preprint search 2026-09-04. Both species already in this project's shortlist (Section 4), modeled together regionally (Catalonia) -- correlative expansion analysis against geomorphological/anthropogenic drivers, not global overlap-mapping. Not a novelty threat; useful supporting evidence these two species co-expand in the wild.}
+}
+
+@article{Howard2026,
+  title   = {Modeling invasions beyond equilibrium: Integrating dispersal and accessibility, physiological constraints, and ecological context to improve invasion-risk predictions},
+  author  = {Howard, Leif and van Rees, Charles and Carter, Sean and Kimball, John and Luikart, Gordon},
+  year    = {2026},
+  howpublished = {ARPHA preprint},
+  doi     = {10.3897/arphapreprints.e206193},
+  note    = {Found via OpenAlex preprint search 2026-09-04. Freshwater-AIS-specific process-informed SDM framework directly addressing the SDM equilibrium-assumption critique already flagged in Section 10. Strong citation for this project's Limitations section.}
+}
+
+@article{Miok2026,
+  title   = {Where species distribution models fail under occurrence-data contamination: calibration error concentrates at stream-network headwaters},
+  author  = {Miok, Kristian and Laza, Antonio V. and \v{S}krlj, Bla\v{z} and Robnik-\v{S}ikonja, Marko and P\^arvulescu, Lucian},
+  year    = {2026},
+  howpublished = {bioRxiv preprint},
+  note    = {Found via OpenAlex preprint search 2026-09-04. Shows SDM calibration error from low-accuracy/citizen-science occurrence records concentrates at stream-network headwaters. Directly relevant to this project's GBIF bias-correction step (Section 6 step 1) and river-network-aware SDM approach.}
+}
+
+% --- Systematic review pass 6 (2026-09-04): full-text read of PDFs the
+% user supplied in references/references_pdfs/. MAJOR FINDING: Gallardo,
+% Zieritz & Aldridge (2015, PLoS ONE) already does a TRUE GLOBAL
+% multi-species SDM stacking map including freshwater species -- the
+% closest precedent in the whole review, predating Mahapatra by 11 years.
+% Also found: Gallardo & Aldridge (2013, Biological Conservation), a
+% fourth Gallardo paper. Realization: nearly every close precedent found
+% across this entire review traces back to one researcher, Belinda
+% Gallardo -- the novelty section should frame this project as extending
+% her body of work specifically, not "the field" generally.
+
+@article{GallardoZeritzAldridge2015,
+  title   = {The Importance of the Human Footprint in Shaping the Global Distribution of Terrestrial, Freshwater and Marine Invaders},
+  author  = {Gallardo, Belinda and Zieritz, Alexandra and Aldridge, David C.},
+  journal = {PLoS ONE},
+  year    = {2015},
+  volume  = {10},
+  number  = {5},
+  eid     = {e0125801},
+  doi     = {10.1371/journal.pone.0125801},
+  note    = {FULL TEXT READ 2026-09-04 (PDF supplied by user). THE CLOSEST PRECEDENT FOUND IN THE WHOLE REVIEW. 72 species (17 terrestrial plants, 19 terrestrial animals, 17 FRESHWATER, 19 marine), global occurrence data (GBIF/BioCASE/IOBIS/NLBIF/Waarneming/NBN/Discover Life), single-algorithm MaxEnt SDMs fit globally per species (9x9km/5 arcmin resolution), climate + geology + 5 human-footprint predictors (HII, land cover, population density, port proximity, road proximity), thresholded to binary maps, then explicitly "combined together into a cumulative global `heat map' representing the total number of species predicted present" (Fig 4A) -- a TRUE GLOBAL multi-species stacking output (not just projected onto one focus region), 11 years before Mahapatra et al. (2026) did the mammal-only version. CONFIRMED DIFFERENTIATORS: (1) heat map mixes ALL 72 species across all 4 taxon-habitat groups together -- no freshwater-ONLY compounding-risk map; (2) coarse global climate/geology/human-footprint predictors, NO river-network-aware hydrological data; (3) framed entirely around human footprint as a predictor, not facilitation/meltdown between invaders; (4) no null-model significance test; (5) no validation against real documented multi-species co-occurrence; (6) no biodiversity/endemism overlay; (7) single-algorithm MaxEnt not ensemble; (8) species list chosen for NW-Europe (GB/France/Belgium/Netherlands) management relevance, not global invasion significance. Must be cited directly and prominently in the novelty section as the primary paper this project extends.}
+}
+
+@article{Gallardo2013c,
+  title   = {Evaluating the combined threat of climate change and biological invasions on endangered species},
+  author  = {Gallardo, Belinda and Aldridge, David C.},
+  journal = {Biological Conservation},
+  year    = {2013},
+  volume  = {160},
+  pages   = {225--233},
+  doi     = {10.1016/j.biocon.2013.02.001},
+  note    = {FULL TEXT READ 2026-09-04 (PDF supplied by user). Fourth Gallardo \& Aldridge paper found in this review. BIOMOD ensemble SDMs (the exact tool named in this project's proposal, Section 8) for TWO species already in this project's shortlist -- zebra mussel (Dreissena polymorpha) and signal crayfish (Pacifastacus leniusculus) -- each paired against one endangered native species (depressed river mussel Pseudanodonta complanata; white-clawed crayfish Austropotamobius pallipes) to compute range overlap under current and 2050 climate, Europe scale. Two SEPARATE invasive-native pairs analyzed in parallel, not a combined multi-invader stack -- not a threat to the compounding-risk metric specifically, but directly relevant precedent for the Q4 biodiversity-stakes overlay and a precursor to Lee et al. (2025)'s RHM approach. Confirms Gallardo \& Aldridge's own internal citation numbering (seen in Gallardo2018's reference list as "Gallardo and Aldridge, 2013c") -- there are at least three 2013 Gallardo \& Aldridge papers (dirty dozen = a, priority-setting/Ecological Applications = b, this one = c).}
+}
+
 @article{Borges2021,
   title   = {Invasion and Extirpation Potential of Native and Invasive Spartina Species Under Climate Change},
   author  = {Borges, Francisco O. and Santos, Catarina P. and Paula, Jos\'e R. and Mateos-Naranjo, Enrique and Redondo-Gomez, Susana and Adams, Janine Barbara and Ca\c{c}ador, Isabel and Fonseca, Vanessa F. and Reis-Santos, Patrick and Duarte, Bernardo and Rosa, Rui},

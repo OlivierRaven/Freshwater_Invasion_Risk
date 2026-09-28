@@ -1,0 +1,6 @@
+taxon_group,n_total,n_ge_500,n_ge_1000,n_ge_5000
+Fish,1018,570,465,233
+Plant (strict freshwater habitat tag only),221,150,121,71
+Gastropod,82,42,35,22
+Crayfish/crab (Malacostraca),103,39,27,18
+Bivalve,30,20,18,9
