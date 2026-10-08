@@ -27,6 +27,8 @@ data/raw/*.tif
 data/raw/sinas/
 # 57 MB, re-created by analysis.qmd from the raw GBIF pulls (on the external drive)
 data/derived/bulk_353_gbif_occurrences_clean.csv
+# 202 MB, re-created by analysis.qmd Section 4 from the data on the external drive
+data/derived/occurrences_with_predictors.csv
 
 # knitr cache / render artefacts
 analysis_cache/

@@ -709,14 +709,157 @@ cat(
 
 ## 4. Predictor assembly (HydroATLAS + FutureStreams)
 
-<!-- FILL IN: extract HydroATLAS static variables + FutureStreams derived
-     bioclim-style variables at occurrence points, snapped to the river
-     network. Section 6, step 2 -->
+<!-- Section 6, step 2 of the proposal.
+
+     METHOD NOTE (2026-10-08): the originally-planned approach -- loading
+     RiverATLAS's 8.5M river-reach line geometries into R and running
+     st_nearest_feature() per occurrence point -- crashed this machine's
+     memory (8GB RAM) even after restricting to one species' bounding box
+     (1.1M candidate reaches still pulled free memory down to ~3,500 pages,
+     the same danger zone that caused a full "out of application memory"
+     system warning on the naive global attempt). Benchmarked the fix:
+     rasterize each HydroATLAS variable onto the SAME 5 arcmin grid as
+     FutureStreams via sf::gdal_utils("rasterize", ...), which runs inside
+     GDAL's C code and never loads the vector layer into R memory at all.
+     A full-GLOBE rasterize of one variable took 103 seconds with memory
+     staying safe throughout (vs. 100+ seconds just to test a tiny 10x10
+     degree window with the vector approach, which also meant the
+     bottleneck was fixed per-call overhead, not covered area -- global
+     is not meaningfully slower than a small window). Point extraction
+     from a raster is then the same fast operation already proven in
+     Section (FutureStreams extraction, 12 layers x 2,259 points in 7.7s).
+
+     This also means HydroATLAS attributes are matched to occurrence points
+     by RASTER CELL, not true nearest-river-reach-centerline distance -- a
+     reasonable approximation at 5 arcmin (~10km) resolution and consistent
+     with how the FutureStreams predictors are already handled, but a
+     simplification from "snapped to the river network" worth noting
+     explicitly in the Methods/Limitations text, not silently glossed over.
+
+     RiverATLAS was unzipped to a plain .gdb folder on the drive
+     (hydroatlas/RiverATLAS_v10.gdb) -- unzipping only shaved ~12% off
+     rasterize time (it wasn't really the zip overhead), but avoids
+     repeated zip decompression on every one of the ~9 rasterize calls
+     below, so kept as the working copy. -->
+
+```{r}
+#| label: hydroatlas-rasterize
+#| cache: true
+# Starter set of RiverATLAS static variables (research_proposal.md Section 5:
+# "discharge, stream order, slope, drainage area"), plus a few more from the
+# same hydrology/physiography categories. This is a candidate list for the
+# correlation-screening step below, not a final predictor set.
+hydro_vars <- c(
+  "DIS_AV_CMS",  # average discharge, m3/s
+  "ORD_STRA",    # Strahler stream order
+  "ORD_CLAS",    # classified stream order
+  "UPLAND_SKM",  # total upstream drainage area, km2
+  "CATCH_SKM",   # local catchment area, km2
+  "LENGTH_KM",   # reach length, km
+  "slp_dg_cav",  # channel slope, degrees
+  "ele_mt_cav",  # elevation, m
+  "gwt_cm_cav"   # groundwater table depth, cm
+)
+
+gdb_path <- file.path(hydroatlas_dir, "RiverATLAS_v10.gdb")
+hydro_raster_dir <- file.path(hydroatlas_dir, "rasterized")
+dir.create(hydro_raster_dir, showWarnings = FALSE, recursive = TRUE)
+
+rasterize_hydro_var <- function(var) {
+  out_path <- file.path(hydro_raster_dir, paste0(var, ".tif"))
+  if (file.exists(out_path)) return(out_path)  # never re-run a finished rasterize
+  sf::gdal_utils("rasterize", source = gdb_path, destination = out_path,
+    options = c("-l", "RiverATLAS_v10", "-a", var,
+                "-te", "-180", "-90", "180", "90",
+                "-tr", "0.0833333", "0.0833333",   # match FutureStreams 5 arcmin
+                "-a_nodata", "-9999", "-ot", "Float32"))
+  out_path
+}
+
+hydro_raster_paths <- map_chr(hydro_vars, rasterize_hydro_var)
+hydro_stack <- rast(hydro_raster_paths)
+names(hydro_stack) <- hydro_vars
+cat("HydroATLAS predictor stack: nlyr =", nlyr(hydro_stack), "\n")
+```
 
 ```{r}
 #| label: predictor-assembly
-#| eval: false
+# BUGFIX (2026-10-08, third attempt): the first version of this chunk
+# combined all 9 HydroATLAS + 12 FutureStreams rasters into one SpatRaster
+# via c()/rast(multiple files) and called terra::extract() ONCE. That
+# silently dropped a consistent ~4.7% of rows regardless of point count
+# (confirmed at n=1,000 -> 953 rows, n=10,000 -> 9,524 rows, n=556,051 ->
+# 529,573 rows -- always ~95.3% returned). Root-caused by direct testing:
+# not a memory issue (reproduced at tiny scale), not an extent-alignment
+# issue (every source raster's extent is bit-for-bit identical, confirmed
+# directly), not reproducible extracting from any single layer alone (all
+# 21 layers individually return exactly n rows, always, every time tested).
+# This looks like a terra/GDAL-internal limitation reading many NetCDF file
+# handles at once inside one extract() call. Fix: extract each layer
+# SEPARATELY (proven reliable at every scale tested) and bind the
+# single-column results together in R afterward. Slower (~71 min vs. the
+# broken version's ~15 min for all 556,051 points) but produces the
+# correct, complete row count every time -- confirmed via the stopifnot()
+# check below, which would halt the pipeline rather than silently write a
+# truncated/misaligned predictor table.
+fs_files <- list.files(futurestreams_dir, pattern = "[.]nc$", full.names = TRUE)
+fs_names <- tools::file_path_sans_ext(basename(fs_files)) |> sub("_E2O_hist.*$", "", x = _)
+
+occ_all <- read_csv("data/derived/bulk_353_gbif_occurrences_clean.csv", show_col_types = FALSE)
+occ_pts <- vect(occ_all, geom = c("decimalLongitude", "decimalLatitude"), crs = "EPSG:4326")
+n_pts <- nrow(occ_pts)
+
+extract_one_layer <- function(path, var_name, is_multiband_mean = FALSE) {
+  r <- rast(path)
+  if (is_multiband_mean) r <- mean(r)  # Q-bfi: 27 annual layers -> one mean
+  e <- terra::extract(r, occ_pts)[, 2]  # drop the ID column, keep the value
+  if (length(e) != n_pts) {
+    stop("Row count mismatch extracting ", var_name, ": got ", length(e),
+         " for ", n_pts, " points -- do not proceed.")
+  }
+  e
+}
+
+t_extract <- Sys.time()
+hydro_values <- map(seq_along(hydro_vars), function(i) {
+  extract_one_layer(hydro_raster_paths[i], hydro_vars[i])
+}) |> set_names(hydro_vars) |> as_tibble()
+
+fs_values <- map(seq_along(fs_files), function(i) {
+  extract_one_layer(fs_files[i], fs_names[i], is_multiband_mean = grepl("Q-bfi", fs_files[i]))
+}) |> set_names(ifelse(grepl("Q-bfi", fs_files), "Q-bfi_mean", fs_names)) |> as_tibble()
+
+cat("Total extraction time:", round(difftime(Sys.time(), t_extract, units = "mins"), 1), "min\n")
+
+predictor_values <- bind_cols(hydro_values, fs_values)
+cat("predictor_values dims:", nrow(predictor_values), "rows x", ncol(predictor_values), "cols\n")
+stopifnot(nrow(predictor_values) == n_pts)
+
+occ_with_predictors <- bind_cols(occ_all, predictor_values)
+write_csv(occ_with_predictors, "data/derived/occurrences_with_predictors.csv")
+cat("Wrote data/derived/occurrences_with_predictors.csv (", nrow(occ_with_predictors), "rows)\n")
+
+cat("\nMissing-data rate per predictor (points falling outside any river cell):\n")
+occ_with_predictors |>
+  summarise(across(all_of(names(predictor_values)), ~ mean(is.na(.x)))) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "pct_na") |>
+  arrange(desc(pct_na)) |>
+  print(n = 25)
 ```
+
+<!-- STILL TO DO before this feeds SDM fitting (Section 6, step 3):
+     1. Correlation screening across the ~21 candidate predictors above --
+        drop redundant ones (e.g. the various temperature/flow summary
+        stats are likely highly correlated with each other), keep ~8-10.
+     2. Apply the WT-mean > 350K unrealistic-value mask (Section 10
+        "Unrealistic values" note) before, not after, this extraction step
+        feeds model fitting.
+     3. Decide on the Q-mean < 10 m3/s mask as a sensitivity check, not a
+        default filter (Section 10) -- would otherwise drop every
+        small-stream occurrence, which matters for several shortlisted
+        species.
+     4. Download future-scenario FutureStreams files (RCP2.6 / RCP8.5) only
+        for whichever ~8-10 variables survive step 1 -- not before. -->
 
 ## 5. Individual species SDMs
 
