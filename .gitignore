@@ -21,8 +21,12 @@ renv/staging/
 
 # Large / intermediate data (keep raw & derived tracked unless they get big —
 # then switch to Git LFS or exclude specific large files here)
-data/raw/*.nc
-data/raw/*.tif
+data/raw/**/*.nc
+data/raw/**/*.tif
+# Temp staging for FutureStreams future-scenario downloads before they move
+# to the external drive -- same .nc files, belongs with the rest of
+# futurestreams/ there, not in the repo
+data/raw/temporary_futurestreams/
 # Third-party raw data: re-download from Zenodo (see analysis.qmd section 1a)
 data/raw/sinas/
 # 57 MB, re-created by analysis.qmd from the raw GBIF pulls (on the external drive)
