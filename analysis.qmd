@@ -951,13 +951,13 @@ occ_sdm <- occ_with_predictors |> rename(
 fit_prototype_sdm <- function(species_name, n_background = 10000, seed = 42) {
   presence <- occ_sdm |>
     filter(species_requested == species_name, if_all(all_of(keep11), ~ !is.na(.x)), WT_max <= 350) |>
-    select(decimalLongitude, decimalLatitude)
+    dplyr::select(decimalLongitude, decimalLatitude)
 
   set.seed(seed)
   background <- occ_sdm |>
     filter(species_requested != species_name) |>
     slice_sample(n = n_background) |>
-    select(decimalLongitude, decimalLatitude)
+    dplyr::select(decimalLongitude, decimalLatitude)
 
   all_pts <- bind_rows(presence, background)
   resp <- c(rep(1, nrow(presence)), rep(NA, nrow(background)))
@@ -1050,20 +1050,174 @@ ggsave("outputs/figures/fig4_carp_suitability_prototype.png", fig4, width = 12, 
 fig4
 ```
 
-<!-- STILL TO DO before scaling to all 353 species:
+<!-- STILL TO DO after the batch run below:
      1. Decide final variable set (Section 4's 11-variable correlation-
         screening recommendation is not yet formally confirmed).
      2. Add future-scenario projections (RCP2.6/RCP4.5, the GCMs/periods
-        already downloaded in Section 4) once the current-only prototype
-        above is reviewed and approved.
-     3. Scale fit_prototype_sdm() across all species -- likely needs a
-        progress-checkpointing wrapper (same pattern as the GBIF bulk pull
-        in Section 3a) given the per-species runtime (~8 min total for one
-        species here: 2.7 min modeling + 5.3 min projection) -- 353 species
-        at that rate is ~47 hours sequentially; parallelising across
-        species is the natural next optimisation, not yet done.
+        already downloaded in Section 4) once the current-only batch below
+        is reviewed and approved.
      4. Full algorithm ensemble (GLM + RF only here) vs. the originally
-        planned richer set -- decide once prototype results are reviewed. -->
+        planned richer set -- decide once batch results are reviewed. -->
+
+### 5a. Batch SDM fitting across all 353 species (2026-10-28)
+
+Scales `fit_prototype_sdm()`'s logic (same 11 predictors, same GLM+RF
+ensemble, same per-layer-extraction fix) to every species in
+`bulk_target_species`. Machine is 8GB RAM -- confirmed tight (RiverATLAS
+vector loading crashed it on 2026-10-08, Section 4) -- so this runs
+strictly sequentially, one species at a time, not in parallel; the per-
+species runtime is dominated by the fixed-cost projection step (~5.3 min
+regardless of presence-point count), not CPU parallelism, so parallel
+workers would mostly just multiply memory pressure for limited speed gain.
+
+Same checkpointing lesson as the bulk GBIF pull (Section 3a): one
+permanently-failing species must never be fatal to an unattended
+multi-hour job. Every species is wrapped in `tryCatch`, logged to
+`sdm_batch_results.csv` (status + runtime + error if any), and already-
+`"success"` species are skipped on re-run -- safe to stop and resume this
+at any point.
+
+Per-species biomod2 model objects (32MB+ each, ~11GB+ across 353 species)
+and suitability rasters are written to the external drive
+(`<data_root>/outputs/sdm_all/<species>/`), not the git repo -- only the
+small aggregated evaluation/variable-importance/results CSVs are tracked.
+
+**Pitfall 6 (2026-10-28, first full-batch smoke test):** every one of the
+first 281 species failed instantly (0.0 min each) with `unable to find an
+inherited method for function 'select' for signature x = "spec_tbl_df"`.
+Not a per-species data problem -- `raster` (loaded internally by
+`biomod2`/`dismo`) turns `select` into an S4 generic with methods only for
+`Raster`/`Spatial` objects, silently shadowing `dplyr::select()` for plain
+tibbles. The single-species prototype never hit this because of session/
+load-order luck, not because the code was actually safe. Confirmed via
+`environmentName(environment(select))` that only `select` is affected
+(`filter`/`mutate`/`rename`/`pull`/`slice_sample` all still resolve to
+`dplyr`) -- fixed by qualifying every `select()` call on occurrence data as
+`dplyr::select()`. Cleared the bogus `sdm_batch_results.csv` entries this
+produced before retrying (zero real species processed before it was
+caught).
+
+**Pitfall 7 (2026-10-28, same smoke test, after fixing pitfall 6):** first
+species then ran a real ~4.9 min model fit but failed at `writeRaster` with
+`path does not exist`. Cause: assumed biomod2's internal per-species output
+folder would be named `sdm_all_dir/<clean_name>/` (as seen for the single
+carp prototype, where it happened to be `Cyprinus.carpio`) and wrote the
+suitability raster into that same path -- but biomod2 sanitizes `resp.name`
+into its own folder name (observed replacing `_` with `.`), so the
+assumed path didn't exist for a fresh, not-yet-created directory. Fixed by
+writing flat into `sdm_all_dir` itself (created once before the loop) with
+the species name baked into the filename, instead of relying on biomod2's
+internal folder-naming convention at all.
+
+```{r}
+#| label: species-sdms-batch-all
+#| eval: false
+#| cache: true
+sdm_all_dir <- file.path(data_root, "outputs", "sdm_all")
+dir.create(sdm_all_dir, showWarnings = FALSE, recursive = TRUE)
+
+sdm_results_path <- "data/derived/sdm_batch_results.csv"
+sdm_eval_path <- "data/derived/sdm_batch_evaluation.csv"
+sdm_varimp_path <- "data/derived/sdm_batch_variable_importance.csv"
+
+fit_and_save_one_sdm <- function(species_name, n_background = 10000, seed = 42) {
+  clean_name <- gsub(" ", "_", species_name)
+
+  presence <- occ_sdm |>
+    filter(species_requested == species_name, if_all(all_of(keep11), ~ !is.na(.x)), WT_max <= 350) |>
+    dplyr::select(decimalLongitude, decimalLatitude)
+
+  set.seed(seed)
+  background <- occ_sdm |>
+    filter(species_requested != species_name) |>
+    slice_sample(n = n_background) |>
+    dplyr::select(decimalLongitude, decimalLatitude)
+
+  all_pts <- bind_rows(presence, background)
+  resp <- c(rep(1, nrow(presence)), rep(NA, nrow(background)))
+  all_pts_vect <- vect(all_pts, geom = c("decimalLongitude", "decimalLatitude"), crs = "EPSG:4326")
+
+  expl_values <- map(keep11, function(v) {
+    e <- terra::extract(sdm_predictor_stack[[v]], all_pts_vect)[, 2]
+    if (length(e) != nrow(all_pts)) stop("Row mismatch extracting ", v)
+    e
+  }) |> set_names(keep11) |> as_tibble()
+
+  bm_data <- BIOMOD_FormatingData(
+    resp.var = resp,
+    resp.xy = as.matrix(all_pts[, c("decimalLongitude", "decimalLatitude")]),
+    expl.var = expl_values,
+    resp.name = clean_name,
+    dir.name = sdm_all_dir,
+    PA.nb.rep = 0
+  )
+
+  bm_models <- BIOMOD_Modeling(
+    bm.format = bm_data,
+    models = c("GLM", "RF"),
+    CV.strategy = "kfold",
+    CV.k = 2,
+    CV.nb.rep = 1,
+    OPT.strategy = "bigboss",
+    var.import = 3,
+    metric.eval = c("TSS", "AUCroc"),
+    seed.val = seed
+  )
+
+  bm_proj <- BIOMOD_Projection(
+    bm.mod = bm_models,
+    proj.name = "current",
+    new.env = sdm_predictor_stack,
+    models.chosen = "all",
+    build.clamping.mask = FALSE
+  )
+
+  suitability <- mean(get_predictions(bm_proj))
+  # Flat filename, not a per-species subfolder -- biomod2 sanitizes
+  # resp.name into its OWN internal folder name (e.g. replacing "_" with
+  # "."), which doesn't match our clean_name, so a subfolder path built
+  # from clean_name doesn't exist and writeRaster fails (pitfall 7 below).
+  writeRaster(suitability, file.path(sdm_all_dir, paste0(clean_name, "_suitability_current.tif")), overwrite = TRUE)
+
+  write_csv(get_evaluations(bm_models) |> mutate(species = species_name),
+            sdm_eval_path, append = file.exists(sdm_eval_path))
+  write_csv(get_variables_importance(bm_models) |> mutate(species = species_name),
+            sdm_varimp_path, append = file.exists(sdm_varimp_path))
+
+  rm(bm_data, bm_models, bm_proj, suitability); invisible(gc(verbose = FALSE))
+  n_presence = nrow(presence)
+}
+
+species_done <- if (file.exists(sdm_results_path)) {
+  read_csv(sdm_results_path, show_col_types = FALSE) |> filter(status == "success") |> pull(species)
+} else character(0)
+
+species_to_run <- setdiff(bulk_target_species$species_requested, species_done)
+message(sprintf("%d species already done, %d remaining", length(species_done), length(species_to_run)))
+
+for (i in seq_along(species_to_run)) {
+  sp <- species_to_run[i]
+  t0 <- Sys.time()
+  result <- tryCatch(
+    {
+      n_pres <- fit_and_save_one_sdm(sp)
+      list(status = "success", error = NA_character_, n_presence = n_pres)
+    },
+    error = function(e) {
+      message("FAILED: ", sp, " -- ", conditionMessage(e))
+      list(status = "failed", error = conditionMessage(e), n_presence = NA_integer_)
+    }
+  )
+  runtime_min <- round(as.numeric(difftime(Sys.time(), t0, units = "mins")), 2)
+  write_csv(
+    tibble(species = sp, status = result$status, n_presence = result$n_presence,
+           runtime_min = runtime_min, error = result$error,
+           completed_at = as.character(Sys.time())),
+    sdm_results_path, append = file.exists(sdm_results_path)
+  )
+  message(sprintf("[%d/%d] %s: %s (%.1f min)", i, length(species_to_run), sp, result$status, runtime_min))
+}
+```
 
 ## 6. Compounding-risk metric
 

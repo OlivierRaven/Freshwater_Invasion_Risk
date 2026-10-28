@@ -49,3 +49,9 @@ outputs/sdm_prototype/*/
 references/references_pdfs/
 
 **/*.quarto_ipynb
+
+# SDM batch run results -- committed once the full 353-species run completes,
+# not during/after a partial run (avoids a misleading incomplete snapshot)
+data/derived/sdm_batch_results.csv
+data/derived/sdm_batch_evaluation.csv
+data/derived/sdm_batch_variable_importance.csv
