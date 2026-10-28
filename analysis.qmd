@@ -1020,6 +1020,36 @@ cat("\n=== Variable importance (mean across runs) ===\n")
 print(carp_fit$var_imp |> group_by(expl.var) |> summarise(mean_importance = mean(var.imp, na.rm = TRUE)) |> arrange(desc(mean_importance)))
 ```
 
+```{r}
+#| label: fig4-carp-suitability-map
+#| fig-cap: "Common carp predicted current habitat suitability, with actual GBIF occurrence records overlaid."
+
+carp_suit_df <- as.data.frame(carp_suitability / 10, xy = TRUE)  # scale 0-1000 -> 0-100%
+names(carp_suit_df)[3] <- "suitability"
+
+carp_presence <- occ_sdm |> filter(species_requested == "Cyprinus carpio")
+world_map <- map_data("world")
+
+fig4 <- ggplot() +
+  geom_raster(data = carp_suit_df, aes(x, y, fill = suitability)) +
+  geom_polygon(data = world_map, aes(long, lat, group = group), fill = NA, color = "grey30", linewidth = 0.1) +
+  # NOTE: occurrence points plotted in cyan, not black -- the magma fill
+  # scale goes to near-black at low suitability, so black points were
+  # indistinguishable from low-suitability raster cells (caught on review).
+  geom_point(data = carp_presence, aes(decimalLongitude, decimalLatitude),
+             size = 0.15, alpha = 0.3, color = "#00E5FF") +
+  coord_fixed(1.3, ylim = c(-60, 85)) +
+  scale_fill_viridis_c(name = "Predicted\nsuitability (%)", option = "magma", na.value = "white") +
+  labs(title = "Common carp (Cyprinus carpio): predicted current habitat suitability",
+       subtitle = "First prototype species distribution model — ensemble of GLM + Random Forest, 11 environmental variables\nCyan dots: actual GBIF occurrence records",
+       x = NULL, y = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid = element_blank(), legend.position = "right")
+
+ggsave("outputs/figures/fig4_carp_suitability_prototype.png", fig4, width = 12, height = 6.5, dpi = 200)
+fig4
+```
+
 <!-- STILL TO DO before scaling to all 353 species:
      1. Decide final variable set (Section 4's 11-variable correlation-
         screening recommendation is not yet formally confirmed).
