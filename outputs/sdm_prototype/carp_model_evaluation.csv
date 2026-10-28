@@ -1,0 +1,9 @@
+full.name,PA,run,algo,metric.eval,cutoff,sensitivity,specificity,calibration,validation,evaluation
+Cyprinus.carpio_allData_RUN1_GLM,allData,RUN1,GLM,TSS,415,79.69,38.329,0.183,0.167,NA
+Cyprinus.carpio_allData_RUN1_GLM,allData,RUN1,GLM,AUCroc,434.5,69.2,47.133,0.574,0.567,NA
+Cyprinus.carpio_allData_RUN1_RF,allData,RUN1,RF,TSS,394,97.297,92.141,0.894,0.463,NA
+Cyprinus.carpio_allData_RUN1_RF,allData,RUN1,RF,AUCroc,459,95.29,93.708,0.977,0.812,NA
+Cyprinus.carpio_allData_RUN2_GLM,allData,RUN2,GLM,TSS,417,78.619,40.571,0.191,0.191,NA
+Cyprinus.carpio_allData_RUN2_GLM,allData,RUN2,GLM,AUCroc,436.5,66.577,48.325,0.573,0.575,NA
+Cyprinus.carpio_allData_RUN2_RF,allData,RUN2,RF,TSS,434,97.592,91.087,0.887,0.479,NA
+Cyprinus.carpio_allData_RUN2_RF,allData,RUN2,RF,AUCroc,525,94.782,93.449,0.975,0.823,NA

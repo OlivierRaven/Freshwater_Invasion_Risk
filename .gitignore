@@ -38,6 +38,13 @@ data/derived/occurrences_with_predictors.csv
 analysis_cache/
 analysis.rmarkdown
 
+# biomod2's own per-species model-object directories (Section 5) -- large
+# (32 MB for one species, will be much larger across all 353) and fully
+# regeneratable by re-running fit_prototype_sdm(); the evaluation CSVs,
+# variable-importance CSVs, and suitability .tif it produces ARE tracked
+# (they're small and are the actual results, not biomod2's internal state)
+outputs/sdm_prototype/*/
+
 # Publisher PDFs are copyrighted -- keep local, never publish
 references/references_pdfs/
 

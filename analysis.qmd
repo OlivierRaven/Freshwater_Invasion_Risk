@@ -20,6 +20,16 @@ library(tidyverse)
 library(sf)
 library(terra)
 library(rgbif)
+library(biomod2)
+# biomod2 calls these internally (RF algorithm, data formatting, k-fold CV)
+# but never library()s them itself -- without an explicit library() call
+# here, renv's dependency scanner won't track them in renv.lock, and a
+# fresh renv::restore() on another machine would silently be missing them
+# until BIOMOD_Modeling fails deep inside a model run (discovered the hard
+# way, Section 5, 2026-10-27/28).
+library(randomForest)
+library(R.utils)
+library(dismo)
 # library(biomod2)
 
 # Bulk raw data (GBIF pulls, HydroATLAS, FutureStreams) lives on the external
@@ -863,14 +873,167 @@ occ_with_predictors |>
 
 ## 5. Individual species SDMs
 
-<!-- FILL IN: biomod2 ensemble models per species, current + future
-     projections per RCP/warming level. Section 6, step 3 -->
+<!-- Section 6, step 3 of the proposal. First working prototype, one species
+     (Cyprinus carpio), built 2026-10-27/28 and debugged through 8 failed
+     attempts before succeeding -- kept all of them below as comments since
+     every one is a real, non-obvious biomod2 v4.3.4.6 pitfall worth not
+     re-discovering when this gets extended to the other 352 species:
+
+     1. Missing optional dependency packages (randomForest, R.utils, dismo)
+        -- biomod2 only warns about these at library-load time, not at the
+        point where BIOMOD_Modeling actually needs them, so the failure
+        surfaces mid-run with no clue which package is missing from the
+        error alone. Install randomForest, R.utils, and dismo before
+        running this for any new algorithm/CV-strategy combination.
+     2. BIOMOD_FormatingData(expl.var = <SpatRaster>) extracts internally
+        via one terra::extract() call across all layers -- this is the
+        EXACT SAME silent-row-drop bug fixed in Section 4 (predictor
+        assembly) on 2026-10-08. Never pass a raster stack directly;
+        extract per-layer first (see extract_one_layer() helper reused
+        from Section 4's approach) and pass a data.frame instead.
+     3. metric.eval wants "AUCroc", not "ROC" -- the error message lists
+        the full valid set if this changes again in a future biomod2
+        version.
+     4. CV.nb.rep is a REQUIRED separate parameter from CV.k even for a
+        single k-fold split (CV.nb.rep = 1) -- omitting it fails deep
+        inside cross-validation setup with an unhelpful "nb.rep must be an
+        integer" error that doesn't name the missing argument.
+     5. THE BIG ONE: biomod2 builds an internal model FORMULA from variable
+        names. Any predictor name containing a hyphen (our FutureStreams
+        variables: Q-mean, Q-bfi_mean, Q-zfw, WT-mean, WT-min, WT-max)
+        breaks formula parsing -- R reads "Q-mean" as "Q minus mean", not
+        as one variable, and every single model fails calibration with
+        "object 'Q' not found". This is NOT a terra/extraction bug, it is
+        specific to biomod2's formula-building step. Fix: rename every
+        predictor to use underscores before it reaches biomod2 at all
+        (Q_mean, Q_bfi_mean, Q_zfw, WT_mean, WT_min, WT_max) -- the
+        hyphenated names stay in the source files and in
+        occurrences_with_predictors.csv; only this modeling step renames
+        them, on load. -->
 
 ```{r}
-#| label: species-sdms
-#| eval: false
+#| label: species-sdms-prototype
 #| cache: true
+sdm_out_dir <- "outputs/sdm_prototype"
+dir.create(sdm_out_dir, showWarnings = FALSE, recursive = TRUE)
+
+keep11 <- c("UPLAND_SKM", "CATCH_SKM", "ORD_CLAS", "slp_dg_cav", "ele_mt_cav",
+            "Q_mean", "Q_bfi_mean", "Q_zfw", "WT_mean", "WT_min", "WT_max")
+
+# Current predictor stack, reusing the same rasterized HydroATLAS layers and
+# FutureStreams E2O historical files as Section 4 -- renamed to underscore
+# variable names here (see pitfall 5 above).
+hydro_vars <- c("UPLAND_SKM", "CATCH_SKM", "ORD_CLAS", "slp_dg_cav", "ele_mt_cav")
+hydro_paths <- file.path(hydroatlas_dir, "rasterized", paste0(hydro_vars, ".tif"))
+sdm_hydro_stack <- rast(hydro_paths)
+names(sdm_hydro_stack) <- hydro_vars
+
+fs_hist_files <- list.files(futurestreams_dir, pattern = "E2O_hist.*[.]nc$", full.names = TRUE)
+fs_need_hyphen <- c("Q-mean", "Q-zfw", "WT-mean", "WT-min", "WT-max")
+fs_need_clean  <- c("Q_mean", "Q_zfw", "WT_mean", "WT_min", "WT_max")
+fs_hist_keep <- fs_hist_files[sapply(fs_need_hyphen, function(v) grep(paste0("^", v, "_"), basename(fs_hist_files)))]
+sdm_fs_stack <- rast(fs_hist_keep)
+names(sdm_fs_stack) <- fs_need_clean
+
+bfi_file <- grep("^Q-bfi_", basename(fs_hist_files), value = TRUE)
+Q_bfi_mean_r <- mean(rast(file.path(futurestreams_dir, bfi_file)))
+names(Q_bfi_mean_r) <- "Q_bfi_mean"
+
+ext(sdm_hydro_stack) <- ext(sdm_fs_stack)  # same lossless alignment fix as Section 4
+sdm_predictor_stack <- c(sdm_hydro_stack, sdm_fs_stack, Q_bfi_mean_r)[[keep11]]
+sdm_predictor_stack[["WT_max"]][sdm_predictor_stack[["WT_max"]] > 350] <- NA  # unrealistic-value mask
+
+occ_sdm <- occ_with_predictors |> rename(
+  Q_mean = `Q-mean`, Q_bfi_mean = `Q-bfi_mean`, Q_zfw = `Q-zfw`,
+  WT_mean = `WT-mean`, WT_min = `WT-min`, WT_max = `WT-max`
+)
+
+fit_prototype_sdm <- function(species_name, n_background = 10000, seed = 42) {
+  presence <- occ_sdm |>
+    filter(species_requested == species_name, if_all(all_of(keep11), ~ !is.na(.x)), WT_max <= 350) |>
+    select(decimalLongitude, decimalLatitude)
+
+  set.seed(seed)
+  background <- occ_sdm |>
+    filter(species_requested != species_name) |>
+    slice_sample(n = n_background) |>
+    select(decimalLongitude, decimalLatitude)
+
+  all_pts <- bind_rows(presence, background)
+  resp <- c(rep(1, nrow(presence)), rep(NA, nrow(background)))
+  all_pts_vect <- vect(all_pts, geom = c("decimalLongitude", "decimalLatitude"), crs = "EPSG:4326")
+
+  # Per-layer extraction (pitfall 2) -- reusing the same proven pattern as
+  # Section 4's predictor-assembly fix.
+  expl_values <- map(keep11, function(v) {
+    e <- terra::extract(sdm_predictor_stack[[v]], all_pts_vect)[, 2]
+    if (length(e) != nrow(all_pts)) stop("Row mismatch extracting ", v)
+    e
+  }) |> set_names(keep11) |> as_tibble()
+
+  clean_name <- gsub(" ", "_", species_name)
+  bm_data <- BIOMOD_FormatingData(
+    resp.var = resp,
+    resp.xy = as.matrix(all_pts[, c("decimalLongitude", "decimalLatitude")]),
+    expl.var = expl_values,
+    resp.name = clean_name,
+    dir.name = sdm_out_dir,  # keep biomod2's own model-object output under outputs/, not the project root
+    PA.nb.rep = 0
+  )
+
+  bm_models <- BIOMOD_Modeling(
+    bm.format = bm_data,
+    models = c("GLM", "RF"),
+    CV.strategy = "kfold",
+    CV.k = 2,
+    CV.nb.rep = 1,            # required separately from CV.k -- pitfall 4
+    OPT.strategy = "bigboss",
+    var.import = 3,
+    metric.eval = c("TSS", "AUCroc"),  # not "ROC" -- pitfall 3
+    seed.val = seed
+  )
+
+  bm_proj <- BIOMOD_Projection(
+    bm.mod = bm_models,
+    proj.name = "current",
+    new.env = sdm_predictor_stack,
+    models.chosen = "all",
+    build.clamping.mask = FALSE
+  )
+
+  list(models = bm_models, projection = bm_proj,
+       eval = get_evaluations(bm_models), var_imp = get_variables_importance(bm_models))
+}
+
+# Prototype on one species only -- extend to the full 353 once reviewed.
+carp_fit <- fit_prototype_sdm("Cyprinus carpio")
+
+write_csv(carp_fit$eval, file.path(sdm_out_dir, "carp_model_evaluation.csv"))
+write_csv(carp_fit$var_imp, file.path(sdm_out_dir, "carp_variable_importance.csv"))
+
+carp_suitability <- mean(get_predictions(carp_fit$projection))
+writeRaster(carp_suitability, file.path(sdm_out_dir, "carp_suitability_current.tif"), overwrite = TRUE)
+
+cat("=== Evaluation (TSS / AUCroc by model run) ===\n")
+print(carp_fit$eval)
+cat("\n=== Variable importance (mean across runs) ===\n")
+print(carp_fit$var_imp |> group_by(expl.var) |> summarise(mean_importance = mean(var.imp, na.rm = TRUE)) |> arrange(desc(mean_importance)))
 ```
+
+<!-- STILL TO DO before scaling to all 353 species:
+     1. Decide final variable set (Section 4's 11-variable correlation-
+        screening recommendation is not yet formally confirmed).
+     2. Add future-scenario projections (RCP2.6/RCP4.5, the GCMs/periods
+        already downloaded in Section 4) once the current-only prototype
+        above is reviewed and approved.
+     3. Scale fit_prototype_sdm() across all species -- likely needs a
+        progress-checkpointing wrapper (same pattern as the GBIF bulk pull
+        in Section 3a) given the per-species runtime (~8 min total for one
+        species here: 2.7 min modeling + 5.3 min projection) -- 353 species
+        at that rate is ~47 hours sequentially; parallelising across
+        species is the natural next optimisation, not yet done.
+     4. Full algorithm ensemble (GLM + RF only here) vs. the originally
+        planned richer set -- decide once prototype results are reviewed. -->
 
 ## 6. Compounding-risk metric
 
