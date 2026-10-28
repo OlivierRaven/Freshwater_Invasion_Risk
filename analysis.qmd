@@ -971,7 +971,7 @@ fit_prototype_sdm <- function(species_name, n_background = 10000, seed = 42) {
     e
   }) |> set_names(keep11) |> as_tibble()
 
-  clean_name <- gsub(" ", "_", species_name)
+  clean_name <- gsub("[ -]+", "_", species_name)  # also strips hyphens (e.g. Alisma plantago-aquatica) -- same formula-parsing bug as pitfall 5, caught in the first full-batch smoke test when resp.name itself carried a hyphen
   bm_data <- BIOMOD_FormatingData(
     resp.var = resp,
     resp.xy = as.matrix(all_pts[, c("decimalLongitude", "decimalLatitude")]),
@@ -1109,6 +1109,20 @@ writing flat into `sdm_all_dir` itself (created once before the loop) with
 the species name baked into the filename, instead of relying on biomod2's
 internal folder-naming convention at all.
 
+**Pitfall 8 (2026-10-29, ~10 species into the full run, non-fatal):**
+*Alisma plantago-aquatica* failed every model with the same
+`object '<x>' not found` formula-parsing error as pitfall 5 -- but this
+time it wasn't a predictor name, it was the species name itself. `species
+-> clean_name` only replaced spaces with underscores, not hyphens, so the
+hyphen in the specific epithet ("plantago-aquatica") broke biomod2's
+internal formula the same way a hyphenated predictor name did. Caught
+cleanly by the per-species `tryCatch` (logged as `"failed"`, batch kept
+going) -- confirmed affects exactly 2 of the 353 target species (the other:
+*Hydrocharis morsus-ranae*). Fixed by sanitizing `clean_name` with
+`gsub("[ -]+", "_", species_name)` instead of only replacing spaces; both
+species will be retried automatically next run since checkpointing only
+skips `"success"` entries.
+
 ```{r}
 #| label: species-sdms-batch-all
 #| eval: false
@@ -1121,7 +1135,7 @@ sdm_eval_path <- "data/derived/sdm_batch_evaluation.csv"
 sdm_varimp_path <- "data/derived/sdm_batch_variable_importance.csv"
 
 fit_and_save_one_sdm <- function(species_name, n_background = 10000, seed = 42) {
-  clean_name <- gsub(" ", "_", species_name)
+  clean_name <- gsub("[ -]+", "_", species_name)  # also strips hyphens (e.g. Alisma plantago-aquatica) -- same formula-parsing bug as pitfall 5, caught in the first full-batch smoke test when resp.name itself carried a hyphen
 
   presence <- occ_sdm |>
     filter(species_requested == species_name, if_all(all_of(keep11), ~ !is.na(.x)), WT_max <= 350) |>

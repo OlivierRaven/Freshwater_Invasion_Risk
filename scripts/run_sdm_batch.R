@@ -65,7 +65,7 @@ sdm_eval_path <- "data/derived/sdm_batch_evaluation.csv"
 sdm_varimp_path <- "data/derived/sdm_batch_variable_importance.csv"
 
 fit_and_save_one_sdm <- function(species_name, n_background = 10000, seed = 42) {
-  clean_name <- gsub(" ", "_", species_name)
+  clean_name <- gsub("[ -]+", "_", species_name)  # also strips hyphens (e.g. Alisma plantago-aquatica) -- same formula-parsing bug as pitfall 5, caught in the first full-batch smoke test when resp.name itself carried a hyphen
 
   presence <- occ_sdm |>
     filter(species_requested == species_name, if_all(all_of(keep11), ~ !is.na(.x)), WT_max <= 350) |>
