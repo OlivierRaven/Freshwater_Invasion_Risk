@@ -141,6 +141,17 @@ species_done <- if (file.exists(sdm_results_path)) {
 species_to_run <- setdiff(bulk_target_species$species_requested, species_done)
 message(sprintf("%d species already done, %d remaining", length(species_done), length(species_to_run)))
 
+# Cap how many species this one R process fits before exiting (restarted by
+# scripts/run_sdm_batch_driver.sh). Discovered 2026-10-29: running all 353 in
+# one long-lived session leaked memory somewhere in the terra/GDAL/biomod2
+# stack despite rm()+gc() each iteration -- RSS grew ~111MB -> ~960MB over 38
+# species, swap filled (7.96/9.2GB used), and per-species runtime degraded
+# from ~5 min to 169 min as the 8GB machine started thrashing. A fresh
+# process every N species resets that growth to zero.
+batch_limit <- as.integer(Sys.getenv("SDM_BATCH_LIMIT", "15"))
+species_to_run <- head(species_to_run, batch_limit)
+message(sprintf("Processing up to %d species this invocation", length(species_to_run)))
+
 for (i in seq_along(species_to_run)) {
   sp <- species_to_run[i]
   t0 <- Sys.time()
