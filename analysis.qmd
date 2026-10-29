@@ -1123,6 +1123,31 @@ going) -- confirmed affects exactly 2 of the 353 target species (the other:
 species will be retried automatically next run since checkpointing only
 skips `"success"` entries.
 
+**Root-caused the intermittent 100+ minute species spikes (2026-10-29).**
+Several species (*Carpiodes cyprinus* 155 min, *Carychium minimum* 86 min,
+*Channa argus* 149 min) took 15-30x longer than the typical ~5-8 min,
+despite the pitfall-6-era per-process restart fix. Traced via biomod2's own
+intermediate-file modification timestamps (not logged timings) that the
+slow phase is specifically `BIOMOD_Projection` -- model fitting itself
+stayed fast (~4 min) every time. Confirmed it is **not species-specific**:
+the species immediately after a 149 min *Channa argus* run
+(*Chelicorophium curvispinum*) completed in 4.6 min. Root cause: projecting
+4 models (GLM/RF x 2 CV runs) across ~2.1M valid global raster cells is a
+genuinely large, roughly fixed-size memory spike; whenever that spike
+happens to land while the rest of the 8GB machine (R's own growing
+baseline + this Positron/Claude Code session's ~1GB + macOS overhead) is
+already near the physical RAM ceiling, it gets forced into swap --
+and once in swap, the random-access raster I/O pattern of projection
+becomes 15-30x slower, not just mildly slower. Confirmed Spotlight
+indexing was already off and raw external-drive write speed was normal
+(77MB/s), ruling those out. Mitigation (not a full fix, since the
+projection step's peak cost is roughly constant regardless): lowered
+`SDM_BATCH_LIMIT` from 15 to 5 so the R process restarts more often,
+keeping its own baseline memory lower on average, and closed other
+memory-heavy applications during the run. If spikes persist, the next
+step is the cloud-burst option already anticipated in Section 8 of
+CLAUDE.md, rather than continuing to fight an 8GB ceiling.
+
 ```{r}
 #| label: species-sdms-batch-all
 #| eval: false
@@ -1217,7 +1242,7 @@ message(sprintf("%d species already done, %d remaining", length(species_done), l
 # swap filled (7.96/9.2GB used on this 8GB machine), and per-species
 # runtime degraded from ~5 min to 169 min as the machine started
 # thrashing. A fresh process every N species resets that growth to zero.
-batch_limit <- as.integer(Sys.getenv("SDM_BATCH_LIMIT", "15"))
+batch_limit <- as.integer(Sys.getenv("SDM_BATCH_LIMIT", "5"))
 species_to_run <- head(species_to_run, batch_limit)
 message(sprintf("Processing up to %d species this invocation", length(species_to_run)))
 

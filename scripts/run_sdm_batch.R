@@ -148,7 +148,16 @@ message(sprintf("%d species already done, %d remaining", length(species_done), l
 # species, swap filled (7.96/9.2GB used), and per-species runtime degraded
 # from ~5 min to 169 min as the 8GB machine started thrashing. A fresh
 # process every N species resets that growth to zero.
-batch_limit <- as.integer(Sys.getenv("SDM_BATCH_LIMIT", "15"))
+batch_limit <- as.integer(Sys.getenv("SDM_BATCH_LIMIT", "5"))
+# Lowered from 15 to 5 (2026-10-29): root-caused the intermittent 100+ min
+# species spikes to BIOMOD_Projection's memory footprint (predicting ~2.1M
+# global raster cells x 4 models at once) occasionally colliding with
+# whatever else the 8GB machine was doing at that exact moment and getting
+# forced into swap -- not species-specific (the very next species after a
+# 149 min spike ran in 4.6 min). A smaller per-process species count keeps
+# the process's own baseline memory lower on average, reducing how often
+# that collision happens; it doesn't eliminate the risk entirely since the
+# projection step's peak cost is roughly fixed regardless of batch size.
 species_to_run <- head(species_to_run, batch_limit)
 message(sprintf("Processing up to %d species this invocation", length(species_to_run)))
 
