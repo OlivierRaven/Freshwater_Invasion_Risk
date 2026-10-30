@@ -1148,6 +1148,19 @@ memory-heavy applications during the run. If spikes persist, the next
 step is the cloud-burst option already anticipated in Section 8 of
 CLAUDE.md, rather than continuing to fight an 8GB ceiling.
 
+**Update (2026-10-30, overnight run with batch_limit=5):** spikes
+persisted and got worse, not better -- *Coregonus albula* (50 min) ->
+*Coregonus artedi* (114 min) -> *Coregonus clupeaformis* (303 min), all
+three in the SAME 5-species process, escalating within as few as 3
+species. One process was also observed stalled for over 7 hours of wall
+clock with under 10 minutes of actual CPU time -- almost entirely blocked
+on swap I/O, not computing. Dropped `SDM_BATCH_LIMIT` to 1 (every species
+gets a fully fresh process) as the cheapest remaining lever, decided with
+the user 2026-10-30. If limit=1 still shows multi-hour spikes, that would
+confirm the bottleneck is this machine's total RAM rather than within-
+session accumulation, and the next step is the cloud-burst option, not a
+smaller batch size.
+
 ```{r}
 #| label: species-sdms-batch-all
 #| eval: false
@@ -1242,7 +1255,7 @@ message(sprintf("%d species already done, %d remaining", length(species_done), l
 # swap filled (7.96/9.2GB used on this 8GB machine), and per-species
 # runtime degraded from ~5 min to 169 min as the machine started
 # thrashing. A fresh process every N species resets that growth to zero.
-batch_limit <- as.integer(Sys.getenv("SDM_BATCH_LIMIT", "5"))
+batch_limit <- as.integer(Sys.getenv("SDM_BATCH_LIMIT", "1"))
 species_to_run <- head(species_to_run, batch_limit)
 message(sprintf("Processing up to %d species this invocation", length(species_to_run)))
 
